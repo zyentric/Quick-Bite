@@ -38,7 +38,6 @@ export default function LaunchScreen() {
   );
 }
 
-const { width } = Dimensions.get('window');
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {

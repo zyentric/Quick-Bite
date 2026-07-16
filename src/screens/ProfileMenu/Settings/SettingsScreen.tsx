@@ -30,7 +30,7 @@ export default function SettingsScreen() {
 
       <View style={styles.contentContainer}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {SETTING_ITEMS.map((item, index) => (
+          {SETTING_ITEMS.map((item, _index) => (
             <TouchableOpacity 
               key={item.id} 
               style={styles.settingRow} 

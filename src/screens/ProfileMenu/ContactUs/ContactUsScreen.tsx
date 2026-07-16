@@ -49,7 +49,7 @@ export default function ContactUsScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {CONTACT_METHODS.map((item, index) => (
+          {CONTACT_METHODS.map((item, _index) => (
             <TouchableOpacity key={item.id} style={styles.methodRow} activeOpacity={0.7}>
               <View style={styles.iconContainer}>
                 <Text style={styles.methodIcon}>{item.icon}</Text>

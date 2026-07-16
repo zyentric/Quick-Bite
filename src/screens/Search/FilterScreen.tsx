@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 
-const { width } = Dimensions.get('window');
 
 type FilterNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Filter'>;
 

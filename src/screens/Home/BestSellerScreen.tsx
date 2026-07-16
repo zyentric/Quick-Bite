@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList, MenuItem } from '../../types';
+import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 
 const { width } = Dimensions.get('window');

@@ -27,7 +27,7 @@ export default function SupportScreen() {
   const styles = getStyles(colors);
   
   const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [messages, _setMessages] = useState<Message[]>(INITIAL_MESSAGES);
 
   return (
     <SafeAreaView style={styles.safeArea}>

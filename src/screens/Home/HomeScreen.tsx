@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList, Restaurant } from '../../types';
+import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 
 const { width } = Dimensions.get('window');
@@ -141,7 +141,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false} 
               onMomentumScrollEnd={handleScroll}
             >
-              {banners.map((banner, index) => (
+              {banners.map((banner, _index) => (
                 <TouchableOpacity 
                   key={banner.id} 
                   style={styles.promoSlide}

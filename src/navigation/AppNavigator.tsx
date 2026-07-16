@@ -149,7 +149,6 @@ export default function AppNavigator() {
         <Stack.Screen name="FoodDetails" component={FoodDetailsScreen} />
         <Stack.Screen name="BestSeller" component={BestSellerScreen} />
         <Stack.Screen name="Recommendations" component={RecommendationsScreen} />
-        <Stack.Screen name="Filter" component={FilterScreen} />
         <Stack.Screen name="Favorites" component={FavoritesScreen} />
         <Stack.Screen name="Help" component={HelpScreen} />
         <Stack.Screen name="Support" component={SupportScreen} />

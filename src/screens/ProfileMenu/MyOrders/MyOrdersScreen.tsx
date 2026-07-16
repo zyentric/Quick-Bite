@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 
-const { width } = Dimensions.get('window');
 
 type MyOrdersNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyOrders'>;
 
