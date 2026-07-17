@@ -1,24 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { useUser } from '../../../context/UserContext';
+import { API_URL } from '../../../config/api';
+import CustomAlert from '../../../components/CustomAlert';
 
 type DeliveryAddressNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DeliveryAddress'>;
-
-const ADDRESSES = [
-  { id: '1', title: 'My home', address: '778 Locust View Drive Oakland, CA' },
-  { id: '2', title: 'My Office', address: '778 Locust View Drive Oakland, CA' },
-  { id: '3', title: 'Parent\'s House', address: '778 Locust View Drive Oakland, CA' },
-];
 
 export default function DeliveryAddressScreen() {
   const navigation = useNavigation<DeliveryAddressNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  
-  const [selectedId, setSelectedId] = useState<string>('1');
+  const { userId } = useUser();
+
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchProfile = async () => {
+        if (!userId) return;
+        try {
+          const res = await fetch(`${API_URL}/users/profile`, {
+            headers: {
+              'user-id': userId,
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (isActive) {
+              const fetched = data.savedAddresses || [];
+              setAddresses(fetched);
+              if (fetched.length > 0) {
+                setSelectedId(fetched[0].label);
+              } else {
+                setSelectedId('');
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching profile addresses:", e);
+        }
+      };
+      fetchProfile();
+      return () => {
+        isActive = false;
+      };
+    }, [userId])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,36 +77,52 @@ export default function DeliveryAddressScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
           <View style={styles.listContainer}>
-            {ADDRESSES.map((item, index) => {
-              const isSelected = selectedId === item.id;
-              return (
-                <View key={item.id}>
-                  <TouchableOpacity 
-                    style={styles.addressRow}
-                    activeOpacity={0.7}
-                    onPress={() => setSelectedId(item.id)}
-                  >
-                    <View style={styles.iconContainer}>
-                      <Text style={styles.houseIcon}>🏠</Text>
-                    </View>
-                    <View style={styles.addressInfo}>
-                      <Text style={styles.addressTitle}>{item.title}</Text>
-                      <Text style={styles.addressText}>{item.address}</Text>
-                    </View>
-                    <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
-                      {isSelected && <View style={styles.radioInner} />}
-                    </View>
-                  </TouchableOpacity>
-                  {index < ADDRESSES.length - 1 && <View style={styles.separator} />}
-                </View>
-              );
-            })}
+            {addresses.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No saved addresses yet.</Text>
+                <Text style={styles.emptySubText}>Add an address to start ordering!</Text>
+              </View>
+            ) : (
+              addresses.map((item, index) => {
+                const isSelected = selectedId === item.label;
+                const fullAddress = [item.addressLine1, item.addressLine2, item.city, item.zipCode].filter(Boolean).join(', ');
+                return (
+                  <View key={index}>
+                    <TouchableOpacity 
+                      style={styles.addressRow}
+                      activeOpacity={0.7}
+                      onPress={() => setSelectedId(item.label)}
+                    >
+                      <View style={styles.iconContainer}>
+                        <Text style={styles.houseIcon}>
+                          {item.label?.toLowerCase() === 'home' ? '🏠' : item.label?.toLowerCase() === 'work' || item.label?.toLowerCase() === 'office' ? '💼' : '📍'}
+                        </Text>
+                      </View>
+                      <View style={styles.addressInfo}>
+                        <Text style={styles.addressTitle}>{item.label}</Text>
+                        <Text style={styles.addressText}>{fullAddress}</Text>
+                      </View>
+                      <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
+                        {isSelected && <View style={styles.radioInner} />}
+                      </View>
+                    </TouchableOpacity>
+                    {index < addresses.length - 1 && <View style={styles.separator} />}
+                  </View>
+                );
+              })
+            )}
           </View>
 
           <View style={styles.addButtonContainer}>
             <TouchableOpacity 
               style={styles.addAddressBtn} 
-              onPress={() => navigation.navigate('AddNewAddress')}
+              onPress={() => {
+                if (addresses.length >= 5) {
+                  showAlert('Limit Reached', 'You can save a maximum of 5 delivery addresses.');
+                  return;
+                }
+                navigation.navigate('AddNewAddress');
+              }}
             >
               <Text style={styles.addAddressBtnText}>Add New Address</Text>
             </TouchableOpacity>
@@ -71,6 +130,12 @@ export default function DeliveryAddressScreen() {
 
         </ScrollView>
       </View>
+      <CustomAlert 
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -118,6 +183,26 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   listContainer: {
     marginBottom: 40,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 20,
+    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  emptySubText: {
+    fontSize: 13,
+    color: colors.textMuted,
   },
   addressRow: {
     flexDirection: 'row',

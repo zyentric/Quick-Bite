@@ -5,24 +5,91 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 
+import { useUser } from '../../context/UserContext';
+import CustomAlert from '../../components/CustomAlert';
+import CustomLoader from '../../components/CustomLoader';
+import { API_URL } from '../../config/api';
+
+import { EyeIcon, EyeOffIcon, FingerprintIcon, GoogleIcon, FacebookIcon } from '../../components/VectorIcons';
+
 const { height } = Dimensions.get('window');
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { setRole, setUserId, setIsAuthenticated, saveTokens } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+  const [secureText, setSecureText] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  // Custom Alert Modal States
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
-  const handleLogin = () => {
-    navigation.replace('MainTabs');
+  const showCustomAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      showCustomAlert('Required Fields', 'Please enter your email and password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/users/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        showCustomAlert('Login Error', resData.message || 'Invalid credentials');
+        return;
+      }
+
+      // Persist tokens and update auth state atomically
+      await saveTokens(resData.accessToken, resData.refreshToken || '');
+
+      // Set role and userId
+      await setRole(resData.user.role || 'customer');
+      await setUserId(resData.user.id || resData.user._id);
+      navigation.replace('MainTabs');
+    } catch (error: any) {
+      showCustomAlert('Network Issue', 'Network error: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Reusable Custom Loader */}
+      <CustomLoader visible={loading} message="Logging In..." />
+
+      {/* Reusable Custom Alert Modal */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
+
       {/* Top Section */}
       <View style={styles.topSection}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -65,10 +132,10 @@ export default function LoginScreen() {
                 placeholderTextColor={colors.textMuted}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={secureText}
               />
-              <TouchableOpacity style={styles.eyeIcon}>
-                <Text style={styles.eyeIconText}>👁️</Text>
+              <TouchableOpacity style={styles.eyeIcon} onPress={() => setSecureText(!secureText)}>
+                {secureText ? <EyeOffIcon color={colors.primary} size={20} /> : <EyeIcon color={colors.primary} size={20} />}
               </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('SetPassword')} style={styles.forgotPasswordContainer}>
@@ -83,21 +150,20 @@ export default function LoginScreen() {
           <View style={styles.fingerprintSection}>
             <Text style={styles.orText}>or</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Fingerprint')} style={styles.fingerprintButton}>
-              <Text style={styles.fingerprintIcon}>👆</Text>
+              <FingerprintIcon color={colors.primary} size={28} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.socialSection}>
             <Text style={styles.orText}>or sign up with</Text>
             <View style={styles.socialIconsRow}>
-              <TouchableOpacity style={styles.socialIconContainer}>
-                <Text style={styles.socialIcon}>G</Text>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <GoogleIcon size={18} />
+                <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialIconContainer}>
-                <Text style={styles.socialIcon}>🍎</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialIconContainer}>
-                <Text style={styles.socialIcon}>F</Text>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <FacebookIcon size={18} />
+                <Text style={styles.socialButtonText}>Facebook</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -255,18 +321,22 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     gap: 15,
   },
-  socialIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    minWidth: 120,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  socialIcon: {
-    fontSize: 18,
-    color: colors.primary,
+  socialButtonText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
   },
   signupPromptContainer: {
     flexDirection: 'row',

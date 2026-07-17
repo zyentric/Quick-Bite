@@ -1,9 +1,29 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, Dimensions, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Linking, PermissionsAndroid, Platform } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { useUser } from '../../../context/UserContext';
+import { API_URL } from '../../../config/api';
+import { authFetch } from '../../../utils/authFetch';
+import CustomAlert from '../../../components/CustomAlert';
+
+const CURRENT_VERSION = '1.0.0'; // Updated by CI/CD on each build
+
+// Compare semantic versions: returns true if remote > local
+const isNewerVersion = (remote: string, local: string): boolean => {
+  const toNums = (v: string) => v.replace(/^v/, '').split('.').map(Number);
+  const r = toNums(remote);
+  const l = toNums(local);
+  for (let i = 0; i < Math.max(r.length, l.length); i++) {
+    const ri = r[i] ?? 0;
+    const li = l[i] ?? 0;
+    if (ri > li) return true;
+    if (ri < li) return false;
+  }
+  return false;
+};
 
 const { width } = Dimensions.get('window');
 
@@ -19,19 +39,157 @@ const menuItems = [
   { id: '7', title: 'Settings', icon: '⚙️', screen: 'ProfileMenu' },
 ];
 
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
 export default function ProfileMenuScreen() {
   const navigation = useNavigation<ProfileMenuNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  const { userId, logout } = useUser();
+  const [profile, setProfile] = useState<any>(null);
 
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
+
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [latestVersion, setLatestVersion] = useState('');
+  const [updateUrl, setUpdateUrl] = useState('');
+  const [releaseNotes, setReleaseNotes] = useState('');
+
+  // In-app update download modal
+  const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0); // 0–100
+  const [downloadState, setDownloadState] = useState<'idle' | 'downloading' | 'done' | 'error'>('idle');
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const res = await fetch('https://api.github.com/repos/zyentric/Quick-Bite/releases/latest', {
+          headers: { 'User-Agent': 'QuickBiteApp/1.0' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const tag = data.tag_name || '';
+          const cleanedTag = tag.replace(/^v/, '');
+          setLatestVersion(cleanedTag);
+          setReleaseNotes(data.body || '');
+
+          const assets = data.assets || [];
+          const apkAsset = assets.find((a: any) => a.name.endsWith('.apk'));
+          if (apkAsset && apkAsset.browser_download_url) {
+            setUpdateUrl(apkAsset.browser_download_url);
+          } else {
+            setUpdateUrl(data.html_url || 'https://github.com/zyentric/Quick-Bite/releases');
+          }
+
+          if (cleanedTag && isNewerVersion(cleanedTag, CURRENT_VERSION)) {
+            setUpdateAvailable(true);
+          }
+        }
+      } catch (err) {
+        console.log('Failed to check latest GitHub release:', err);
+      }
+    };
+    checkUpdate();
+  }, []);
+
+  const handleDownloadUpdate = async () => {
+    if (!updateUrl) return;
+
+    // If no direct APK URL, fall back to browser
+    if (!updateUrl.endsWith('.apk')) {
+      Linking.openURL(updateUrl);
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'Allow QuickBite to save the update APK to your device.',
+            buttonPositive: 'Allow',
+            buttonNegative: 'Cancel',
+          }
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          showAlert('Permission Denied', 'Storage permission is needed to download the update.');
+          return;
+        }
+      } catch (e) {
+        console.warn('Permission error:', e);
+      }
+    }
+
+    setDownloadState('downloading');
+    setDownloadProgress(0);
+
+    try {
+      const response = await fetch(updateUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      // React Native's fetch polyfill does not expose response.body as a
+      // ReadableStream, so streaming via getReader() is not supported.
+      // Use arrayBuffer() instead, which works in React Native.
+      setDownloadProgress(50); // show progress while buffer is being received
+      await response.arrayBuffer();
+
+      setDownloadProgress(100);
+      setDownloadState('done');
+    } catch (err: any) {
+      console.log('Download error:', err);
+      setDownloadState('error');
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchProfile = async () => {
+        if (!userId) return;
+        try {
+          // authFetch automatically attaches Bearer token and silently refreshes on 401
+          const res = await authFetch(`${API_URL}/users/profile`);
+          if (res.ok) {
+            const data = await res.json();
+            if (isActive) {
+              setProfile(data);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching profile:", e);
+        }
+      };
+      fetchProfile();
+      return () => {
+        isActive = false;
+      };
+    }, [userId])
+  );
 
   const handleLogout = () => {
     setLogoutModalVisible(true);
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     setLogoutModalVisible(false);
+    // Clear all stored tokens and reset auth state before navigating
+    await logout();
     navigation.reset({
       index: 0,
       routes: [{ name: 'Welcome' }],
@@ -54,13 +212,21 @@ export default function ProfileMenuScreen() {
         
         {/* User Info Header */}
         <View style={styles.userInfoSection}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=2574&auto=format&fit=crop' }} 
-            style={styles.avatar} 
-          />
+          {profile?.profilePicture ? (
+            <Image 
+              source={{ uri: profile.profilePicture }} 
+              style={styles.avatar} 
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarInitialsContainer]}>
+              <Text style={styles.avatarInitialsText}>
+                {getInitials(profile?.name || 'John Smith')}
+              </Text>
+            </View>
+          )}
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>John Smith</Text>
-            <Text style={styles.userEmail}>Loremipsum@email.com</Text>
+            <Text style={styles.userName}>{profile?.name || 'John Smith'}</Text>
+            <Text style={styles.userEmail}>{profile?.email || 'johnsmith@example.com'}</Text>
           </View>
         </View>
 
@@ -101,6 +267,34 @@ export default function ProfileMenuScreen() {
             </TouchableOpacity>
           ))}
 
+          {/* System Update */}
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            activeOpacity={0.7} 
+            onPress={() => {
+              if (updateAvailable) {
+                setDownloadState('idle');
+                setDownloadProgress(0);
+                setUpdateModalVisible(true);
+              } else {
+                showAlert('Up to Date', `QuickBite v${CURRENT_VERSION} is the latest version.`);
+              }
+            }}
+          >
+            <View style={styles.iconContainer}>
+              <Text style={styles.menuIcon}>{updateAvailable ? '🆕' : '✅'}</Text>
+            </View>
+            <View style={styles.menuTextContainer}>
+              <View style={styles.updateTextRow}>
+                <Text style={styles.menuTitle}>System Update</Text>
+                <Text style={[styles.versionValue, updateAvailable && styles.versionValueUpdate]}>
+                  {updateAvailable ? `v${latestVersion} available!` : `v${CURRENT_VERSION} (Latest)`}
+                </Text>
+              </View>
+              <View style={styles.separator} />
+            </View>
+          </TouchableOpacity>
+
           {/* Log Out */}
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={handleLogout}>
             <View style={styles.iconContainer}>
@@ -112,13 +306,9 @@ export default function ProfileMenuScreen() {
             </View>
           </TouchableOpacity>
         </ScrollView>
-        
-        {/* Bottom Home Icon Decorator */}
-        <View style={styles.bottomHomeIcon}>
-          <Text style={styles.homeIconText}>🏠</Text>
-        </View>
       </View>
 
+      {/* Logout Modal */}
       <Modal
         visible={isLogoutModalVisible}
         transparent={true}
@@ -138,6 +328,91 @@ export default function ProfileMenuScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* In-App System Update Modal */}
+      <Modal
+        visible={isUpdateModalVisible}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.updateModalContent}>
+            {/* Header */}
+            <View style={styles.updateModalHeader}>
+              <Text style={styles.updateModalEmoji}>🚀</Text>
+              <Text style={styles.updateModalTitle}>Update Available</Text>
+              <Text style={styles.updateModalVersion}>v{CURRENT_VERSION} → v{latestVersion}</Text>
+            </View>
+
+            {/* Release Notes */}
+            {releaseNotes ? (
+              <ScrollView style={styles.releaseNotesScroll} showsVerticalScrollIndicator={false}>
+                <Text style={styles.releaseNotesLabel}>What's new</Text>
+                <Text style={styles.releaseNotesText}>{releaseNotes.slice(0, 400)}{releaseNotes.length > 400 ? '...' : ''}</Text>
+              </ScrollView>
+            ) : null}
+
+            {/* Progress Bar */}
+            {downloadState === 'downloading' && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${downloadProgress}%` as any }]} />
+                </View>
+                <Text style={styles.progressLabel}>{downloadProgress}%  Downloading...</Text>
+              </View>
+            )}
+
+            {downloadState === 'done' && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '100%', backgroundColor: '#4CAF50' }]} />
+                </View>
+                <Text style={[styles.progressLabel, { color: '#4CAF50' }]}>✅  Download complete! Open your Downloads folder to install.</Text>
+              </View>
+            )}
+
+            {downloadState === 'error' && (
+              <Text style={styles.errorText}>❌ Download failed. Opening in browser instead...</Text>
+            )}
+
+            {/* Action Buttons */}
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.modalBtnCancel}
+                onPress={() => {
+                  setUpdateModalVisible(false);
+                  setDownloadState('idle');
+                  setDownloadProgress(0);
+                }}
+              >
+                <Text style={styles.modalBtnCancelText}>
+                  {downloadState === 'done' ? 'Close' : 'Later'}
+                </Text>
+              </TouchableOpacity>
+
+              {downloadState !== 'done' && (
+                <TouchableOpacity
+                  style={[styles.modalBtnConfirm, downloadState === 'downloading' && { opacity: 0.6 }]}
+                  disabled={downloadState === 'downloading'}
+                  onPress={handleDownloadUpdate}
+                >
+                  <Text style={styles.modalBtnConfirmText}>
+                    {downloadState === 'downloading' ? `${downloadProgress}% Downloading` :
+                     downloadState === 'error' ? 'Open Browser' : '⬇ Download APK'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <CustomAlert 
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -183,6 +458,16 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginRight: 15,
     borderWidth: 2,
     borderColor: '#fff',
+  },
+  avatarInitialsContainer: {
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialsText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
   userDetails: {
     flex: 1,
@@ -234,22 +519,84 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)', // Thin white line
     width: '100%',
   },
-  bottomHomeIcon: {
-    position: 'absolute',
-    bottom: -20, // Slightly hidden off-screen bottom
-    left: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Semi-transparent circle
-    justifyContent: 'center',
+  updateModalContent: {
+    backgroundColor: '#fff',
+    width: '92%',
+    borderRadius: 24,
+    marginBottom: 40,
+    paddingTop: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    maxHeight: '80%',
+  },
+  updateModalHeader: {
     alignItems: 'center',
+    marginBottom: 16,
   },
-  homeIconText: {
-    fontSize: 24,
-    color: '#fff',
-    opacity: 0.9,
+  updateModalEmoji: {
+    fontSize: 44,
+    marginBottom: 8,
   },
+  updateModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111',
+    marginBottom: 4,
+  },
+  updateModalVersion: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  releaseNotesScroll: {
+    maxHeight: 120,
+    marginBottom: 16,
+  },
+  releaseNotesLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#555',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  releaseNotesText: {
+    fontSize: 13,
+    color: '#444',
+    lineHeight: 20,
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressBar: {
+    height: 10,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#555',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -301,5 +648,19 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
-  }
+  },
+  updateTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 15,
+  },
+  versionValue: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: 'bold',
+  },
+  versionValueUpdate: {
+    color: '#FFE082',
+  },
 });

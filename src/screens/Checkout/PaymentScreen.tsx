@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
+import { useUser } from '../../context/UserContext';
+import { API_URL } from '../../config/api';
+import CustomLoader from '../../components/CustomLoader';
+import CustomAlert from '../../components/CustomAlert';
 
 type PaymentNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Payment'>;
 
@@ -13,13 +17,83 @@ export default function PaymentScreen() {
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
-  const { cartItems, totalPrice } = useCart();
+  const { cartItems, totalPrice, clearCart } = useCart();
+  const { userId } = useUser();
+  const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   const taxAndFees = cartItems.length > 0 ? 5.00 : 0;
   const deliveryFee = cartItems.length > 0 ? 3.00 : 0;
   const finalTotal = totalPrice + taxAndFees + deliveryFee;
 
+  const handlePayNow = async () => {
+    if (cartItems.length === 0) {
+      showAlert('Empty Cart', 'Please add some items to your cart first.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const itemsPayload = cartItems.map(item => ({
+        menuItem: item.id,
+        quantity: item.quantity,
+      }));
+
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': userId || '', // Pass logged in user-id
+        },
+        body: JSON.stringify({
+          items: itemsPayload,
+          totalAmount: finalTotal,
+          deliveryAddress: {
+            addressLine1: '778 Locust View Drive Oaklanda, CA',
+            city: 'Oakland',
+            state: 'CA',
+            zipCode: '94612',
+          },
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        showAlert('Order Failure', resData.message || 'Could not place your order.');
+        return;
+      }
+
+      // Clear local cart
+      clearCart();
+      navigation.navigate('OrderConfirmed');
+    } catch (e: any) {
+      showAlert('Network Issue', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Reusable Custom Loader */}
+      <CustomLoader visible={loading} message="Placing Order..." />
+
+      {/* Reusable Custom Alert Modal */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>{'<'}</Text>
@@ -56,7 +130,7 @@ export default function PaymentScreen() {
                 </View>
               ))}
             </View>
-            <Text style={styles.summaryTotalText}>${finalTotal.toFixed(2)}</Text>
+            <Text style={styles.summaryTotalText}>₹{finalTotal.toFixed(2)}</Text>
           </View>
 
           {/* Payment Method */}
@@ -92,7 +166,7 @@ export default function PaymentScreen() {
         <View style={styles.bottomSection}>
           <TouchableOpacity 
             style={styles.payNowBtn} 
-            onPress={() => navigation.navigate('OrderConfirmed')}
+            onPress={handlePayNow}
           >
             <Text style={styles.payNowBtnText}>Pay Now</Text>
           </TouchableOpacity>

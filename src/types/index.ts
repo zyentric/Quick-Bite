@@ -34,7 +34,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   SetPassword: undefined;
   Fingerprint: undefined;
-  MainTabs: undefined;
+  MainTabs: { screen: 'Home' | 'FoodMenu' | 'Favorites' | 'Orders' | 'Help'; params?: any } | undefined;
   ProfileMenu: undefined;
   MyProfile: undefined;
   DeliveryAddress: undefined;

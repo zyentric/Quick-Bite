@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { HomeIcon, MenuIcon, HeartIcon, ClipboardIcon, HelpIcon } from '../../components/VectorIcons';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 60) / 2; // 2 columns with padding
@@ -189,20 +190,20 @@ export default function RecommendationsScreen() {
       
       {/* Bottom Tabs */}
       <View style={styles.bottomTabsContainer}>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs')}>
-          <Text style={styles.tabIcon}>🏠</Text>
+        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
+          <HomeIcon color="#fff" size={20} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('FoodMenu')}>
-          <Text style={styles.tabIcon}>🍽️</Text>
+          <MenuIcon color="#fff" size={20} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🤍</Text>
+        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Favorites' })}>
+          <HeartIcon color="#fff" size={20} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>📋</Text>
+        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}>
+          <ClipboardIcon color="#fff" size={20} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🎧</Text>
+        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Help' })}>
+          <HelpIcon color="#fff" size={20} />
         </TouchableOpacity>
       </View>
 

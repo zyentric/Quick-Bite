@@ -61,7 +61,7 @@ export default function CartScreen() {
                   <Image source={{ uri: item.image || 'https://via.placeholder.com/60' }} style={styles.itemImage} />
                   <View style={styles.itemDetails}>
                     <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                    <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
                   </View>
                   <View style={styles.itemRight}>
                     <Text style={styles.itemDate}>29/11/24{'\n'}12:00</Text>
@@ -82,20 +82,20 @@ export default function CartScreen() {
             <View style={styles.totalsContainer}>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Subtotal</Text>
-                <Text style={styles.totalValue}>${totalPrice.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>₹{totalPrice.toFixed(2)}</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Tax and Fees</Text>
-                <Text style={styles.totalValue}>${taxAndFees.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>₹{taxAndFees.toFixed(2)}</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Delivery</Text>
-                <Text style={styles.totalValue}>${deliveryFee.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>₹{deliveryFee.toFixed(2)}</Text>
               </View>
               <View style={styles.dottedLine} />
               <View style={styles.totalRow}>
                 <Text style={styles.finalTotalLabel}>Total</Text>
-                <Text style={styles.finalTotalValue}>${finalTotal.toFixed(2)}</Text>
+                <Text style={styles.finalTotalValue}>₹{finalTotal.toFixed(2)}</Text>
               </View>
 
               <TouchableOpacity 

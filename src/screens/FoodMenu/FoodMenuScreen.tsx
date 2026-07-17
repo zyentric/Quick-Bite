@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Image, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { API_URL } from '../../config/api';
+import CustomLoader from '../../components/CustomLoader';
+import CustomAlert from '../../components/CustomAlert';
+import DashboardHeader from '../../components/DashboardHeader';
+import { HomeIcon, MenuIcon, HeartIcon, ClipboardIcon, HelpIcon } from '../../components/VectorIcons';
 
 const { width } = Dimensions.get('window');
 
@@ -16,186 +21,63 @@ const CATEGORIES = [
   { id: 'Dessert', icon: '🧁' },
   { id: 'Drinks', icon: '🍹' },
 ];
-
-const MOCK_FOOD_DATA: Record<string, MenuItem[]> = {
-  'Snacks': [
-    {
-      id: 'snack1',
-      name: 'Mexican Appetizer',
-      price: 15.00,
-      rating: 5.0,
-      description: 'Tortilla Chips With Toppins, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.',
-      image: 'https://images.unsplash.com/photo-1590165482129-1b8b27698780?q=80&w=2670&auto=format&fit=crop',
-      customizations: [
-        {
-          title: 'Toppings',
-          options: [
-            { id: 't1', name: 'Guacamole', price: 2.99 },
-            { id: 't2', name: 'Jalapeños', price: 0.99 },
-            { id: 't3', name: 'Ground Beef', price: 3.99 },
-            { id: 't4', name: 'Pico de Gallo', price: 1.99 },
-          ]
-        }
-      ]
-    },
-    {
-      id: 'snack2',
-      name: 'Pork Skewer',
-      price: 12.99,
-      rating: 4.8,
-      description: 'Marinated in a rich blend of herbs and spices, then grilled to perfection, served with a side of zesty dipping sauce.',
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2574&auto=format&fit=crop',
-    }
-  ],
-  'Meal': [
-    {
-      id: 'meal1',
-      name: 'Fresh Prawn Ceviche',
-      price: 50.00,
-      rating: 4.7,
-      description: 'Shrimp marinated in zesty lime juice, mixed with crisp onions, tomatoes, and cilantro.',
-      image: 'https://images.unsplash.com/photo-1594954005886-f131a4794e79?q=80&w=2574&auto=format&fit=crop',
-      customizations: [
-        {
-          title: 'Add on ingredients',
-          options: [
-            { id: 'm1', name: 'Shrimp', price: 2.99 },
-            { id: 'm2', name: 'Crisp Onion', price: 0.99 },
-            { id: 'm3', name: 'Sweet Corn', price: 3.99 },
-            { id: 'm4', name: 'Pico de Gallo', price: 2.99 },
-          ]
-        }
-      ]
-    },
-    {
-      id: 'meal2',
-      name: 'Chicken Burger',
-      price: 12.99,
-      rating: 4.4,
-      description: 'Tender grilled chicken breast, topped with crisp lettuce, ripe tomato, and creamy mayo, all nestled between a soft, toasted bun.',
-      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2599&auto=format&fit=crop',
-    }
-  ],
-  'Vegan': [
-    {
-      id: 'vegan1',
-      name: 'Mushroom Risotto',
-      price: 15.00,
-      rating: 5.0,
-      description: 'Creamy mushroom risotto, cooked to perfection with arborio rice, wild mushrooms, Parmesan cheese, and white wine.',
-      image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?q=80&w=2669&auto=format&fit=crop',
-    },
-    {
-      id: 'vegan2',
-      name: 'Broccoli Lasagna',
-      price: 12.99,
-      rating: 4.9,
-      description: 'Tender broccoli florets, creamy ricotta cheese, savory marinara sauce, and topped with melted mozzarella.',
-      image: 'https://images.unsplash.com/photo-1619881589316-56c7f9e6b587?q=80&w=2574&auto=format&fit=crop',
-    },
-    {
-      id: 'vegan3',
-      name: 'Bean and Vegetable Burger',
-      price: 50.00,
-      rating: 4.7,
-      description: 'Vegan Mayo, Sliced Tomatoes, Whole Wheat Buns, Bell Peppers.',
-      image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2565&auto=format&fit=crop',
-      customizations: [
-        {
-          title: 'Add on ingredients',
-          options: [
-            { id: 'v1', name: 'Vegan Mayo', price: 1.99 },
-            { id: 'v2', name: 'Sliced Tomatoes', price: 1.99 },
-            { id: 'v3', name: 'Whole Wheat Buns', price: 2.00 },
-            { id: 'v4', name: 'Bell Peppers', price: 1.25 },
-          ]
-        }
-      ]
-    }
-  ],
-  'Dessert': [
-    {
-      id: 'dessert1',
-      name: 'Chocolate Brownie',
-      price: 15.00,
-      rating: 5.0,
-      description: 'Premium cocoa, melted chocolate, and a hint of vanilla, creating a moist, fudgy center with a crisp, crackly top.',
-      image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=2574&auto=format&fit=crop',
-    },
-    {
-      id: 'dessert2',
-      name: 'Macarons',
-      price: 12.99,
-      rating: 4.9,
-      description: 'Delicate vanilla and chocolate macarons, featuring a crisp outer shell and a smooth, rich filling.',
-      image: 'https://images.unsplash.com/photo-1569864358642-9d1684040f43?q=80&w=2670&auto=format&fit=crop',
-    },
-    {
-      id: 'dessert3',
-      name: 'Strawberry Cheesecake',
-      price: 22.00,
-      rating: 4.0,
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.',
-      image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?q=80&w=2670&auto=format&fit=crop',
-      customizations: [
-        {
-          title: 'Add on ingredients',
-          options: [
-            { id: 'd1', name: 'Sliced Nuts', price: 3.99 },
-            { id: 'd2', name: 'Whipped Cream', price: 1.00 },
-            { id: 'd3', name: 'Sliced Strawberries', price: 4.00 },
-            { id: 'd4', name: 'Lemon Zest', price: 1.25 },
-          ]
-        }
-      ]
-    }
-  ],
-  'Drinks': [
-    {
-      id: 'drink1',
-      name: 'Mojito',
-      price: 15.00,
-      rating: 5.0,
-      description: 'Made with white rum, fresh mint leaves, lime juice, simple syrup, and a splash of soda water.',
-      image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?q=80&w=2565&auto=format&fit=crop',
-    },
-    {
-      id: 'drink2',
-      name: 'Iced Coffee',
-      price: 12.99,
-      rating: 4.0,
-      description: 'Espresso, chilled milk, and a touch of sweetness, served over ice for a smooth, refreshing treat.',
-      image: 'https://images.unsplash.com/photo-1517701550927-30cfcb64db85?q=80&w=2670&auto=format&fit=crop',
-    },
-    {
-      id: 'drink3',
-      name: 'Fruit and Berry Tea',
-      price: 15.00,
-      rating: 4.2,
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.',
-      image: 'https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?q=80&w=2670&auto=format&fit=crop',
-      customizations: [
-        {
-          title: 'Choose your base tea',
-          options: [
-            { id: 'dr1', name: 'Green Tea', price: 5.00 },
-            { id: 'dr2', name: 'White Tea', price: 10.00 },
-            { id: 'dr3', name: 'Black Tea', price: 6.10 },
-            { id: 'dr4', name: 'Herbal Infusion', price: 5.25 },
-          ]
-        }
-      ]
-    }
-  ]
-};
-
 export default function FoodMenuScreen() {
   const navigation = useNavigation<FoodMenuNavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Snacks');
-  
+  const [foodData, setFoodData] = useState<Record<string, MenuItem[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
   const colors = useThemeColors();
   const styles = getStyles(colors);
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const fetchMenuItems = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/menu-items`);
+      const data = await response.json();
+      if (!response.ok) {
+        showAlert('Error', data.message || 'Failed to fetch menu items');
+        return;
+      }
+      
+      // Group items by category
+      const grouped: Record<string, MenuItem[]> = {};
+      data.forEach((item: any) => {
+        const cat = item.category || 'Snacks';
+        if (!grouped[cat]) {
+          grouped[cat] = [];
+        }
+        grouped[cat].push({
+          id: item.id || item._id,
+          name: item.name,
+          price: item.price,
+          rating: item.rating || 4.5,
+          description: item.description || '',
+          image: item.image || '',
+          customizations: item.customizations || []
+        });
+      });
+      setFoodData(grouped);
+    } catch (e: any) {
+      showAlert('Network Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenuItems();
+  }, []);
 
   const renderFoodItem = (item: MenuItem) => (
     <TouchableOpacity 
@@ -210,7 +92,7 @@ export default function FoodMenuScreen() {
           <View style={styles.ratingBadge}>
             <Text style={styles.ratingText}>★ {item.rating?.toFixed(1)}</Text>
           </View>
-          <Text style={styles.foodPrice}>${item.price.toFixed(2)}</Text>
+          <Text style={styles.foodPrice}>₹{item.price.toFixed(2)}</Text>
         </View>
         <Text style={styles.foodDescription} numberOfLines={2}>{item.description}</Text>
       </View>
@@ -219,45 +101,22 @@ export default function FoodMenuScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Reusable Custom Loader */}
+      <CustomLoader visible={loading} message="Loading Menu..." />
+
+      {/* Reusable Custom Alert Modal */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
+
       <View style={styles.container}>
         
         {/* Yellow Header Area */}
         <View style={styles.headerSection}>
-          <View style={styles.topBar}>
-            <View style={styles.searchBox}>
-              <TextInput 
-                style={styles.searchInput}
-                placeholder="Search"
-                placeholderTextColor="#999"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              <TouchableOpacity 
-                style={styles.filterIconBtn}
-                onPress={() => navigation.getParent()?.navigate('Filter')}
-              >
-                <Text style={styles.filterIconText}>⚙️</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
-                <Text style={styles.iconBtnText}>🛒</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconBtn}
-                onPress={() => navigation.getParent()?.navigate('Notifications')}
-              >
-                <Text style={styles.iconBtnText}>🔔</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconBtn}
-                onPress={() => navigation.getParent()?.navigate('ProfileMenu')}
-              >
-                <Text style={styles.iconBtnText}>👤</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         </View>
 
         {/* Orange Curved Content Area */}
@@ -298,26 +157,26 @@ export default function FoodMenuScreen() {
 
           {/* Food List */}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-            {MOCK_FOOD_DATA[activeTab]?.map(renderFoodItem)}
+            {foodData[activeTab]?.map(renderFoodItem)}
           </ScrollView>
         </View>
 
         {/* Bottom Tabs */}
         <View style={styles.bottomTabsContainer}>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs')}>
-            <Text style={styles.tabIcon}>🏠</Text>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
+            <HomeIcon color="#fff" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>🍽️</Text>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'FoodMenu' })}>
+            <MenuIcon color="#fff" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>🤍</Text>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'Favorites' })}>
+            <HeartIcon color="#fff" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>📋</Text>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'Orders' })}>
+            <ClipboardIcon color="#fff" size={20} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>🎧</Text>
+          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'Help' })}>
+            <HelpIcon color="#fff" size={20} />
           </TouchableOpacity>
         </View>
       </View>

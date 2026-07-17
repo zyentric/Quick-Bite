@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { EyeIcon, EyeOffIcon } from '../../../components/VectorIcons';
 
 type PasswordSettingNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PasswordSetting'>;
 
@@ -46,7 +47,7 @@ export default function PasswordSettingScreen() {
                 secureTextEntry={!showCurrent}
               />
               <TouchableOpacity onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeIconContainer}>
-                <Text style={styles.eyeIcon}>{showCurrent ? '👁️' : '👁️‍🗨️'}</Text>
+                {showCurrent ? <EyeIcon color={colors.primary} size={20} /> : <EyeOffIcon color={colors.primary} size={20} />}
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.forgotPasswordContainer}>
@@ -64,7 +65,7 @@ export default function PasswordSettingScreen() {
                 secureTextEntry={!showNew}
               />
               <TouchableOpacity onPress={() => setShowNew(!showNew)} style={styles.eyeIconContainer}>
-                <Text style={styles.eyeIcon}>{showNew ? '👁️' : '👁️‍🗨️'}</Text>
+                {showNew ? <EyeIcon color={colors.primary} size={20} /> : <EyeOffIcon color={colors.primary} size={20} />}
               </TouchableOpacity>
             </View>
           </View>
@@ -79,7 +80,7 @@ export default function PasswordSettingScreen() {
                 secureTextEntry={!showConfirm}
               />
               <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeIconContainer}>
-                <Text style={styles.eyeIcon}>{showConfirm ? '👁️' : '👁️‍🗨️'}</Text>
+                {showConfirm ? <EyeIcon color={colors.primary} size={20} /> : <EyeOffIcon color={colors.primary} size={20} />}
               </TouchableOpacity>
             </View>
           </View>

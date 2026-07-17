@@ -22,15 +22,43 @@ const mapHtml = `
 <body>
     <div id="map"></div>
     <script>
-        var map = L.map('map').setView([37.8044, -122.2712], 13);
+        var destCoords = [37.8044, -122.2712];
+        var startCoords = [37.7944, -122.2912];
+        
+        var map = L.map('map').setView(startCoords, 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(map);
         
-        L.marker([37.8044, -122.2712]).addTo(map)
+        // Dest marker (Customer)
+        L.marker(destCoords).addTo(map)
             .bindPopup('Delivery Address')
             .openPopup();
+            
+        // Driver marker
+        var driverMarker = L.marker(startCoords, {
+            icon: L.icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
+                iconSize: [35, 35],
+                iconAnchor: [17, 35]
+            })
+        }).addTo(map).bindPopup('Delivery Partner').openPopup();
+
+        // Draw polyline connecting them
+        var polyline = L.polyline([startCoords, destCoords], {color: '#FFC72C', weight: 4}).addTo(map);
+        map.fitBounds(polyline.getBounds());
+
+        // Listen for parent messages
+        window.addEventListener('message', function(event) {
+            try {
+                var data = JSON.parse(event.data);
+                if (data.type === 'UPDATE_LOCATION') {
+                    driverMarker.setLatLng([data.lat, data.lng]);
+                    map.panTo([data.lat, data.lng]);
+                }
+            } catch (e) {}
+        });
     </script>
 </body>
 </html>
@@ -42,6 +70,30 @@ export default function DeliveryTimeScreen() {
   const navigation = useNavigation<DeliveryTimeNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  const webViewRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    const start = { lat: 37.7944, lng: -122.2912 };
+    const dest = { lat: 37.8044, lng: -122.2712 };
+    const steps = 30; // 30 seconds path animation
+    let currentStep = 0;
+
+    const interval = setInterval(() => {
+      if (currentStep <= steps) {
+        const lat = start.lat + ((dest.lat - start.lat) * currentStep) / steps;
+        const lng = start.lng + ((dest.lng - start.lng) * currentStep) / steps;
+        
+        webViewRef.current?.postMessage(
+          JSON.stringify({ type: 'UPDATE_LOCATION', lat, lng })
+        );
+        currentStep++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,6 +118,7 @@ export default function DeliveryTimeScreen() {
           {/* Map using Leaflet + OpenStreetMap */}
           <View style={styles.mapPlaceholder}>
             <WebView 
+              ref={webViewRef}
               originWhitelist={['*']}
               source={{ html: mapHtml }}
               style={styles.mapWebView}

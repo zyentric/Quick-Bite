@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { API_URL } from '../../config/api';
+import { GearIcon, CartIcon, BellIcon, UserIcon } from '../../components/VectorIcons';
+import DashboardHeader from '../../components/DashboardHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -16,37 +19,132 @@ const dummyCategories = [
   { id: '5', name: 'Drinks', icon: '🍹' },
 ];
 
-const bestSellers = [
-  { id: '1', name: 'Sushi', price: 103.00, image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2670&auto=format&fit=crop' },
-  { id: '2', name: 'Chicken', price: 50.00, image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?q=80&w=2513&auto=format&fit=crop' },
-  { id: '3', name: 'Lasagna', price: 12.99, image: 'https://images.unsplash.com/photo-1619881589316-56c7f9e6b587?q=80&w=2574&auto=format&fit=crop' },
-  { id: '4', name: 'Cupcake', price: 8.20, image: 'https://images.unsplash.com/photo-1587668178277-295251f900ce?q=80&w=2574&auto=format&fit=crop' },
+const DEFAULT_BEST_SELLERS = [
+  { id: '1', name: 'Sushi', price: 103.00, image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2670&auto=format&fit=crop', rating: '5.0', description: 'Delicious sushi roles.', customizations: [] },
+  { id: '2', name: 'Chicken', price: 50.00, image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?q=80&w=2513&auto=format&fit=crop', rating: '4.8', description: 'Roasted herb chicken.', customizations: [] },
+  { id: '3', name: 'Lasagna', price: 12.99, image: 'https://images.unsplash.com/photo-1619881589316-56c7f9e6b587?q=80&w=2574&auto=format&fit=crop', rating: '4.0', description: 'Cheesy beef lasagna.', customizations: [] },
+  { id: '4', name: 'Cupcake', price: 8.20, image: 'https://images.unsplash.com/photo-1587668178277-295251f900ce?q=80&w=2574&auto=format&fit=crop', rating: '4.9', description: 'Creamy chocolate cupcake.', customizations: [] },
 ];
 
-const recommended = [
-  { id: '1', name: 'Burger', price: 10.0, rating: '5.0', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2599&auto=format&fit=crop' },
-  { id: '2', name: 'Spring Rolls', price: 25.0, rating: '5.0', image: 'https://images.unsplash.com/photo-1536521642388-441263f88a61?q=80&w=2670&auto=format&fit=crop' },
+const DEFAULT_RECOMMENDED = [
+  { id: '1', name: 'Burger', price: 10.0, rating: '5.0', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2599&auto=format&fit=crop', description: 'Gourmet beef burger.', customizations: [] },
+  { id: '2', name: 'Spring Rolls', price: 25.0, rating: '5.0', image: 'https://images.unsplash.com/photo-1536521642388-441263f88a61?q=80&w=2670&auto=format&fit=crop', description: 'Crispy vegetable spring rolls.', customizations: [] },
 ];
 
-const banners = [
+const DEFAULT_BANNERS = [
   { id: '1', image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=2669&auto=format&fit=crop', text: 'Experience our\ndelicious new dish\n30% OFF' },
   { id: '2', image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?q=80&w=2670&auto=format&fit=crop', text: 'Taco Tuesday\nBuy 1 Get 1 Free!' },
 ];
+
+import { useUser } from '../../context/UserContext';
+import ShopkeeperDashboardScreen from './ShopkeeperDashboardScreen';
+import DeliveryDashboardScreen from './DeliveryDashboardScreen';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { role } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBanner, setActiveBanner] = useState(0);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   
   const colors = useThemeColors();
   const styles = getStyles(colors);
+
+  useEffect(() => {
+    if (role !== 'shopkeeper' && role !== 'delivery_man') {
+      const fetchMenuItems = async () => {
+        try {
+          const res = await fetch(`${API_URL}/menu-items`);
+          if (res.ok) {
+            const data = await res.json();
+            setMenuItems(data);
+          }
+        } catch (err) {
+          console.error("Error fetching menu items:", err);
+        }
+      };
+      fetchMenuItems();
+    }
+  }, [role]);
+
+  const currentBestSellers = menuItems.length > 0 
+    ? [...menuItems].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4).map(item => ({
+        id: item.id || item._id,
+        name: item.name,
+        price: item.price,
+        rating: item.rating?.toString() || '5.0',
+        image: item.image || 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2670&auto=format&fit=crop',
+        description: item.description,
+        customizations: item.customizations || []
+      }))
+    : DEFAULT_BEST_SELLERS;
+
+  const currentRecommended = menuItems.length > 0
+    ? [...menuItems].reverse().slice(0, 2).map(item => ({
+        id: item.id || item._id,
+        name: item.name,
+        price: item.price,
+        rating: item.rating?.toFixed(1) || '5.0',
+        image: item.image || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2599&auto=format&fit=crop',
+        description: item.description,
+        customizations: item.customizations || []
+      }))
+    : DEFAULT_RECOMMENDED;
+
+  const currentBanners = menuItems.length > 0
+    ? menuItems.slice(0, 2).map((item, idx) => {
+        const discountPrice = item.price * 0.7; // 30% off
+        const promoItem = {
+          id: item.id || item._id,
+          name: item.name,
+          price: idx === 0 ? parseFloat(discountPrice.toFixed(2)) : item.price,
+          originalPrice: idx === 0 ? item.price : undefined,
+          discountBadge: idx === 0 ? '-30%' : undefined,
+          rating: item.rating || 5.0,
+          description: item.description || 'Delicious freshly prepared dish.',
+          image: item.image,
+          customizations: item.customizations || []
+        };
+        return {
+          id: item.id || item._id,
+          image: item.image,
+          text: idx === 0 
+            ? `Experience our\ndelicious new ${item.name}\n30% OFF` 
+            : `${item.name}\nSpecial Offer!`,
+          item: promoItem
+        };
+      })
+    : DEFAULT_BANNERS.map((b, idx) => ({
+        id: b.id,
+        image: b.image,
+        text: b.text,
+        item: {
+          id: 'promo' + b.id,
+          name: idx === 0 ? 'Pizza with Pepperoni and Cheese' : 'Taco Tuesday Special',
+          price: idx === 0 ? 14.00 : 15.00,
+          originalPrice: idx === 0 ? 20.00 : undefined,
+          discountBadge: idx === 0 ? '-30%' : undefined,
+          rating: 5.0,
+          description: 'Delicious hot food item.',
+          image: b.image,
+          customizations: []
+        }
+      }));
 
   const handleScroll = (e: any) => {
     const slide = Math.round(e.nativeEvent.contentOffset.x / (width - 40));
     setActiveBanner(slide);
   };
+
+  if (role === 'shopkeeper') {
+    return <ShopkeeperDashboardScreen />;
+  }
+
+  if (role === 'delivery_man') {
+    return <DeliveryDashboardScreen />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -56,41 +154,7 @@ export default function HomeScreen() {
         <View style={styles.headerSection}>
           
           {/* Top Bar: Search and Icons */}
-          <View style={styles.topBar}>
-            <View style={styles.searchBox}>
-              <TextInput 
-                style={styles.searchInput}
-                placeholder="Search"
-                placeholderTextColor="#999"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              <TouchableOpacity 
-                style={styles.filterIconBtn}
-                onPress={() => navigation.getParent()?.navigate('Filter')}
-              >
-                <Text style={styles.filterIconText}>⚙️</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
-                <Text style={styles.iconBtnText}>🛒</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconBtn}
-                onPress={() => navigation.getParent()?.navigate('Notifications')}
-              >
-                <Text style={styles.iconBtnText}>🔔</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconBtn}
-                onPress={() => navigation.getParent()?.navigate('ProfileMenu')}
-              >
-                <Text style={styles.iconBtnText}>👤</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
           {/* Greeting */}
           <Text style={styles.greetingTitle}>Good Morning</Text>
@@ -123,8 +187,24 @@ export default function HomeScreen() {
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bestSellerList}>
-            {bestSellers.map(item => (
-              <TouchableOpacity key={item.id} style={styles.bestSellerCard} activeOpacity={0.9}>
+            {currentBestSellers.map(item => (
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.bestSellerCard} 
+                activeOpacity={0.9}
+                onPress={() => {
+                  const foodItem = {
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    rating: parseFloat(item.rating || '5.0'),
+                    description: item.description || 'Delicious freshly prepared dish.',
+                    image: item.image,
+                    customizations: item.customizations || []
+                  };
+                  navigation.getParent()?.navigate('FoodDetails', { item: foodItem });
+                }}
+              >
                 <Image source={{ uri: item.image }} style={styles.bestSellerImg} />
                 <View style={styles.priceBadge}>
                   <Text style={styles.priceText}>${item.price.toFixed(1)}</Text>
@@ -141,33 +221,12 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false} 
               onMomentumScrollEnd={handleScroll}
             >
-              {banners.map((banner, _index) => (
+              {currentBanners.map((banner, _index) => (
                 <TouchableOpacity 
                   key={banner.id} 
                   style={styles.promoSlide}
                   onPress={() => {
-                    const mockPromoItem = {
-                      id: 'promo' + banner.id,
-                      name: 'Pizza with Pepperoni and Cheese',
-                      price: 14.00,
-                      originalPrice: 20.00,
-                      discountBadge: '-30%',
-                      rating: 5.0,
-                      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.',
-                      image: banner.image, // using the banner image for demo
-                      customizations: [
-                        {
-                          title: 'Personal portion',
-                          options: [
-                            { id: 'p1', name: 'Personal (4 Slides)', price: 0.00 },
-                            { id: 'p2', name: 'Medium (8 Slides)', price: 3.00 },
-                            { id: 'p3', name: 'Familiar (10 Slides)', price: 6.00 },
-                            { id: 'p4', name: 'Jumbo (12 Slides)', price: 10.00 },
-                          ]
-                        }
-                      ]
-                    };
-                    navigation.getParent()?.navigate('FoodDetails', { item: mockPromoItem });
+                    navigation.getParent()?.navigate('FoodDetails', { item: banner.item });
                   }}
                   activeOpacity={0.9}
                 >
@@ -181,7 +240,7 @@ export default function HomeScreen() {
             
             {/* Dots */}
             <View style={styles.dotsContainer}>
-              {banners.map((_, i) => (
+              {currentBanners.map((_, i) => (
                 <View key={i} style={[styles.dot, activeBanner === i && styles.activeDot]} />
               ))}
             </View>
@@ -196,8 +255,24 @@ export default function HomeScreen() {
           </View>
           
           <View style={styles.recommendGrid}>
-            {recommended.map(item => (
-              <TouchableOpacity key={item.id} style={styles.recommendCard} activeOpacity={0.9}>
+            {currentRecommended.map(item => (
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.recommendCard} 
+                activeOpacity={0.9}
+                onPress={() => {
+                  const foodItem = {
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    rating: parseFloat(item.rating || '5.0'),
+                    description: item.description || 'Delicious freshly prepared dish.',
+                    image: item.image,
+                    customizations: item.customizations || []
+                  };
+                  navigation.getParent()?.navigate('FoodDetails', { item: foodItem });
+                }}
+              >
                 <Image source={{ uri: item.image }} style={styles.recommendImg} />
                 <View style={styles.ratingBadge}>
                   <Text style={styles.ratingText}>{item.rating} ⭐ ❤️</Text>

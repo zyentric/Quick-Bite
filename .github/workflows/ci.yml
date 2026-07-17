@@ -20,12 +20,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -36,24 +36,54 @@ jobs:
       - name: Decode Android Keystore
         run: echo "${{ secrets.ANDROID_RELEASE_KEYSTORE }}" | base64 --decode > android/app/my-upload-key.keystore
 
+      - name: Set Version
+        id: version
+        run: |
+          VERSION_CODE=${{ github.run_number }}
+          VERSION_NAME="1.0.${{ github.run_number }}"
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "🔖 Building version: $VERSION_NAME (code: $VERSION_CODE)"
+
       - name: Build Release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease -PVERSION_CODE=${{ github.run_number }} -PVERSION_NAME=1.0.${{ github.run_number }}
+          ./gradlew assembleRelease \
+            -PVERSION_CODE=${{ steps.version.outputs.VERSION_CODE }} \
+            -PVERSION_NAME=${{ steps.version.outputs.VERSION_NAME }} \
+            -PMYAPP_UPLOAD_STORE_FILE=my-upload-key.keystore \
+            -PMYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} \
+            -PMYAPP_UPLOAD_KEY_ALIAS=${{ secrets.KEY_ALIAS }} \
+            -PMYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
 
-      - name: Create GitHub Release
+      - name: Rename APK with version
+        run: |
+          mv android/app/build/outputs/apk/release/app-release.apk \
+             android/app/build/outputs/apk/release/QuickBite-v${{ steps.version.outputs.VERSION_NAME }}.apk
+
+      - name: Create GitHub Release & Upload APK
         id: create_release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Release v1.0.${{ github.run_number }}
-          files: android/app/build/outputs/apk/release/app-release.apk
+          tag_name: v${{ steps.version.outputs.VERSION_NAME }}
+          name: QuickBite v${{ steps.version.outputs.VERSION_NAME }}
+          body: |
+            ## 🚀 QuickBite v${{ steps.version.outputs.VERSION_NAME }}
+
+            Auto-release built from commit `${{ github.sha }}` on branch `${{ github.ref_name }}`.
+
+            ### 📦 Install
+            Download the APK below and install it on your Android device.
+            > Enable **"Install from unknown sources"** in Settings if prompted.
+          files: android/app/build/outputs/apk/release/QuickBite-v${{ steps.version.outputs.VERSION_NAME }}.apk
+          draft: false
+          prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Output Release URL
         if: github.event_name == 'push'
-        run: echo "🚀 APK Release successfully created! URL -> ${{ steps.create_release.outputs.url }}"
+        run: echo "🚀 APK Release URL -> ${{ steps.create_release.outputs.url }}"

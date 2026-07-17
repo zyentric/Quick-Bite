@@ -47,6 +47,8 @@ import { useThemeColors } from '../theme/colors';
 
 import { RootStackParamList } from '../types';
 
+import { HomeIcon, MenuIcon, HeartIcon, ClipboardIcon, HelpIcon } from '../components/VectorIcons';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -83,27 +85,27 @@ function MainTabs() {
       <Tab.Screen 
         name="Home" 
         component={HomeScreen} 
-        options={{ tabBarIcon: ({ color }) => <Text style={{fontSize: 24, color}}>🏠</Text> }}
+        options={{ tabBarIcon: ({ color }) => <HomeIcon color={color} size={24} /> }}
       />
       <Tab.Screen 
         name="FoodMenu" 
         component={FoodMenuScreen} 
-        options={{ tabBarIcon: ({ color }) => <Text style={{fontSize: 24, color}}>🍽️</Text> }}
+        options={{ tabBarIcon: ({ color }) => <MenuIcon color={color} size={24} /> }}
       />
       <Tab.Screen 
         name="Favorites" 
         component={FavoritesScreen} 
-        options={{ tabBarIcon: ({ color }) => <Text style={{fontSize: 24, color}}>🤍</Text> }}
+        options={{ tabBarIcon: ({ color }) => <HeartIcon color={color} size={24} /> }}
       />
       <Tab.Screen 
         name="Orders" // Placeholder for Clipboard
         component={MyOrdersScreen} // Link Orders tab to MyOrdersScreen
-        options={{ tabBarIcon: ({ color }) => <Text style={{fontSize: 24, color}}>📋</Text> }}
+        options={{ tabBarIcon: ({ color }) => <ClipboardIcon color={color} size={24} /> }}
       />
       <Tab.Screen 
         name="Help" 
         component={HelpScreen} 
-        options={{ tabBarIcon: ({ color }) => <Text style={{fontSize: 24, color}}>🎧</Text> }}
+        options={{ tabBarIcon: ({ color }) => <HelpIcon color={color} size={24} /> }}
       />
     </Tab.Navigator>
   );

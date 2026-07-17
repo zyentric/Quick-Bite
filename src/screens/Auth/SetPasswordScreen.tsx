@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { EyeIcon, EyeOffIcon } from '../../components/VectorIcons';
 
 const { height } = Dimensions.get('window');
 
@@ -13,12 +14,13 @@ export default function SetPasswordScreen() {
   const navigation = useNavigation<SetPasswordScreenNavigationProp>();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [securePassword, setSecurePassword] = useState(true);
+  const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
 
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
   const handleCreatePassword = () => {
-    // Usually go to login or next step
     navigation.navigate('Login');
   };
 
@@ -47,10 +49,10 @@ export default function SetPasswordScreen() {
               placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={securePassword}
             />
-            <TouchableOpacity style={styles.eyeIcon}>
-              <Text style={styles.eyeIconText}>👁️</Text>
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setSecurePassword(!securePassword)}>
+              {securePassword ? <EyeOffIcon color={colors.primary} size={20} /> : <EyeIcon color={colors.primary} size={20} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -64,10 +66,10 @@ export default function SetPasswordScreen() {
               placeholderTextColor={colors.textMuted}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
+              secureTextEntry={secureConfirmPassword}
             />
-            <TouchableOpacity style={styles.eyeIcon}>
-              <Text style={styles.eyeIconText}>👁️</Text>
+            <TouchableOpacity style={styles.eyeIcon} onPress={() => setSecureConfirmPassword(!secureConfirmPassword)}>
+              {secureConfirmPassword ? <EyeOffIcon color={colors.primary} size={20} /> : <EyeIcon color={colors.primary} size={20} />}
             </TouchableOpacity>
           </View>
         </View>

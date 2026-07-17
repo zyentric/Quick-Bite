@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { FingerprintIcon } from '../../components/VectorIcons';
 
 const { height } = Dimensions.get('window');
 
@@ -45,11 +46,10 @@ export default function FingerprintScreen() {
           onPress={() => setIsActive(!isActive)}
           activeOpacity={0.9}
         >
-          {/* We use a placeholder since we don't have the SVG. 
-              Changing color based on active state like in the mockup. */}
-          <Text style={[styles.fingerprintIcon, isActive && styles.fingerprintIconActive]}>
-            👆
-          </Text>
+          <FingerprintIcon 
+            color={isActive ? colors.primary : '#ccc'} 
+            size={120} 
+          />
         </TouchableOpacity>
 
         <View style={styles.buttonRow}>

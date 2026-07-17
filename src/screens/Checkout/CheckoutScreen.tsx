@@ -8,6 +8,39 @@ import { useCart } from '../../context/CartContext';
 
 type CheckoutNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Checkout'>;
 
+function deg2rad(deg: number): number {
+  return deg * (Math.PI / 180);
+}
+
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function calculateDeliveryFee(
+  startLat: number,
+  startLng: number,
+  endLat: number,
+  endLng: number
+): number {
+  const distance = getDistance(startLat, startLng, endLat, endLng);
+  const baseFee = 2.00; // $2.00 base fare
+  const baseDistance = 2.0; // first 2 km included
+  const perKmCharge = 0.50; // $0.50 per additional km
+  
+  if (distance <= baseDistance) {
+    return baseFee;
+  }
+  return baseFee + (distance - baseDistance) * perKmCharge;
+}
+
 export default function CheckoutScreen() {
   const navigation = useNavigation<CheckoutNavigationProp>();
   const colors = useThemeColors();
@@ -15,7 +48,13 @@ export default function CheckoutScreen() {
 
   const { cartItems, totalPrice, updateQuantity } = useCart();
   const taxAndFees = cartItems.length > 0 ? 5.00 : 0;
-  const deliveryFee = cartItems.length > 0 ? 3.00 : 0;
+
+  // Restaurant coordinates: [37.7944, -122.2912]
+  // Customer coordinates: [37.8044, -122.2712]
+  const deliveryFee = cartItems.length > 0
+    ? calculateDeliveryFee(37.7944, -122.2912, 37.8044, -122.2712)
+    : 0;
+
   const finalTotal = totalPrice + taxAndFees + deliveryFee;
 
   return (
@@ -60,7 +99,7 @@ export default function CheckoutScreen() {
               </View>
               <View style={styles.itemRight}>
                 <Text style={styles.trashIcon}>🗑️</Text>
-                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
                 <Text style={styles.itemCountText}>{item.quantity} items</Text>
                 
                 <View style={styles.qtyControl}>
@@ -80,20 +119,20 @@ export default function CheckoutScreen() {
           <View style={styles.totalsContainer}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Subtotal</Text>
-              <Text style={styles.totalValue}>${totalPrice.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>₹{totalPrice.toFixed(2)}</Text>
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Tax and Fees</Text>
-              <Text style={styles.totalValue}>${taxAndFees.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>₹{taxAndFees.toFixed(2)}</Text>
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Delivery</Text>
-              <Text style={styles.totalValue}>${deliveryFee.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>₹{deliveryFee.toFixed(2)}</Text>
             </View>
             <View style={styles.dottedLine} />
             <View style={styles.totalRow}>
               <Text style={styles.finalTotalLabel}>Total</Text>
-              <Text style={styles.finalTotalValue}>${finalTotal.toFixed(2)}</Text>
+              <Text style={styles.finalTotalValue}>₹{finalTotal.toFixed(2)}</Text>
             </View>
           </View>
 
