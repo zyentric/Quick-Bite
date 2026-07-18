@@ -1,32 +1,66 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { useAppTheme } from '../../../context/ThemeContext';
 
 type SettingsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 
 const SETTING_ITEMS = [
-  { id: '1', title: 'Notification Setting', icon: '🔔', screen: 'NotificationSetting' },
-  { id: '2', title: 'Password Setting', icon: '🔑', screen: 'PasswordSetting' },
-  { id: '3', title: 'Delete Account', icon: '👤', screen: 'DeleteAccount' }, // We can just alert for this one or create a dummy screen later
+  { id: '1', title: 'Notification Setting', icon: require('../../../assets/notification.png'), screen: 'NotificationSetting' },
+  { id: '2', title: 'Password Setting', icon: require('../../../assets/keysetting.png'), screen: 'PasswordSetting' },
+  { id: '3', title: 'Delete Account', icon: require('../../../assets/user.png'), screen: 'DeleteAccount' },
 ];
 
 export default function SettingsScreen() {
   const navigation = useNavigation<SettingsNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  
+  const { themePreference, setThemePreference } = useAppTheme();
+  const [themeModalVisible, setThemeModalVisible] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={styles.rightPlaceholder} />
+        <TouchableOpacity style={styles.themeButton} onPress={() => setThemeModalVisible(true)}>
+          <Image source={require('../../../assets/settings.png')} style={styles.themeIconImg} />
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={themeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setThemeModalVisible(false)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setThemeModalVisible(false)}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Select Theme</Text>
+            
+            {(['light', 'dark', 'system'] as const).map(pref => (
+              <TouchableOpacity 
+                key={pref} 
+                style={[styles.themeOption, themePreference === pref && { backgroundColor: colors.primary + '20' }]} 
+                onPress={() => {
+                  setThemePreference(pref);
+                  setThemeModalVisible(false);
+                }}
+              >
+                <Text style={[styles.themeOptionText, { color: colors.text }, themePreference === pref && { color: colors.primary, fontWeight: 'bold' }]}>
+                  {pref.charAt(0).toUpperCase() + pref.slice(1)} {pref === 'system' && 'Setting'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <View style={styles.contentContainer}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -46,10 +80,10 @@ export default function SettingsScreen() {
               }}
             >
               <View style={styles.iconContainer}>
-                <Text style={styles.settingIcon}>{item.icon}</Text>
+                <Image source={item.icon} style={styles.settingIconImg} />
               </View>
               <Text style={styles.settingTitle}>{item.title}</Text>
-              <Text style={styles.chevron}>˅</Text>
+              <Image source={require('../../../assets/next.png')} style={styles.chevronImg} />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -74,10 +108,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -86,6 +121,47 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   rightPlaceholder: {
     width: 40, 
+  },
+  themeButton: {
+    padding: 10,
+  },
+  themeIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  themeOption: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  themeOptionText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   contentContainer: {
     flex: 1,
@@ -108,9 +184,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 40,
     alignItems: 'flex-start',
   },
-  settingIcon: {
-    fontSize: 24,
-    color: colors.primary,
+  settingIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   settingTitle: {
     flex: 1,
@@ -118,9 +196,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
-  chevron: {
-    fontSize: 18,
-    color: colors.primary,
-    fontWeight: 'bold',
+  chevronImg: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   }
 });

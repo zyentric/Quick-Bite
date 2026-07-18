@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Modal, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
@@ -8,10 +8,8 @@ import { useThemeColors, ThemeColors } from '../../../theme/colors';
 type PaymentMethodsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PaymentMethods'>;
 
 const PAYMENT_METHODS = [
-  { id: '1', title: '*** *** *** 43', icon: '💳' },
-  { id: '2', title: 'Apple Play', icon: '🍏' },
-  { id: '3', title: 'Paypal', icon: '🅿️' },
-  { id: '4', title: 'Google Play', icon: '▶️' },
+  { id: '1', title: 'Debit Card', isCard: true },
+  { id: '2', title: 'UPI ID', isCard: false },
 ];
 
 export default function PaymentMethodsScreen() {
@@ -20,12 +18,15 @@ export default function PaymentMethodsScreen() {
   const styles = getStyles(colors);
   
   const [selectedId, setSelectedId] = useState<string>('1');
+  const [upiModalVisible, setUpiModalVisible] = useState(false);
+  const [upiId, setUpiId] = useState('');
+  const [tempUpiId, setTempUpiId] = useState('');
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Methods</Text>
         <View style={styles.rightPlaceholder} />
@@ -42,12 +43,22 @@ export default function PaymentMethodsScreen() {
                   <TouchableOpacity 
                     style={styles.paymentRow}
                     activeOpacity={0.7}
-                    onPress={() => setSelectedId(item.id)}
+                    onPress={() => {
+                      setSelectedId(item.id);
+                      if (item.id === '2') {
+                        setTempUpiId(upiId);
+                        setUpiModalVisible(true);
+                      }
+                    }}
                   >
                     <View style={styles.iconContainer}>
-                      <Text style={styles.paymentIcon}>{item.icon}</Text>
+                      {item.isCard ? (
+                        <Image source={require('../../../assets/card.png')} style={styles.paymentIconImg} />
+                      ) : (
+                        <View style={styles.upiBadge}><Text style={styles.upiBadgeText}>UPI</Text></View>
+                      )}
                     </View>
-                    <Text style={styles.paymentTitle}>{item.title}</Text>
+                    <Text style={styles.paymentTitle}>{item.id === '2' && upiId ? upiId : item.title}</Text>
                     
                     <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
                       {isSelected && <View style={styles.radioInner} />}
@@ -64,12 +75,44 @@ export default function PaymentMethodsScreen() {
               style={styles.addCardBtn} 
               onPress={() => navigation.navigate('AddCard')}
             >
-              <Text style={styles.addCardBtnText}>Add New Card</Text>
+              <Text style={styles.addCardBtnText}>Add UPI ID or debit card</Text>
             </TouchableOpacity>
           </View>
 
         </ScrollView>
       </View>
+
+      {/* UPI Input Modal */}
+      <Modal visible={upiModalVisible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Enter UPI ID</Text>
+            <TextInput
+              style={styles.upiInput}
+              placeholder="e.g. username@upi"
+              value={tempUpiId}
+              onChangeText={setTempUpiId}
+              autoCapitalize="none"
+              placeholderTextColor="#999"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setUpiModalVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalSaveBtn} 
+                onPress={() => { 
+                  setUpiId(tempUpiId); 
+                  setUpiModalVisible(false); 
+                }}
+              >
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -173,5 +216,86 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.primary,
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
+  },
+  paymentIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.text,
+  },
+  upiBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  upiBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 25,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  upiInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  modalCancelText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalSaveBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    marginLeft: 10,
+  },
+  modalSaveText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });

@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { HomeIcon, MenuIcon, HeartIcon, ClipboardIcon, HelpIcon } from '../../components/VectorIcons';
+import { useCart } from '../../context/CartContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 60) / 2; // 2 columns with padding
@@ -19,7 +20,7 @@ const FEATURED_ITEM = {
   rating: 5.0,
   description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
   image: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?q=80&w=2574&auto=format&fit=crop', // Crepes
-  categoryIcon: '🧁',
+  categoryIcon: require('../../assets/dessert.png'),
   isNew: true,
 };
 
@@ -31,7 +32,7 @@ const GRID_ITEMS = [
     rating: 4.0,
     description: 'Lorem ipsum dolor sit amet, consectetur...',
     image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2565&auto=format&fit=crop',
-    categoryIcon: '🥗',
+    categoryIcon: require('../../assets/vegan.png'),
   },
   {
     id: 'r3',
@@ -40,7 +41,7 @@ const GRID_ITEMS = [
     rating: 4.5,
     description: 'Lorem ipsum dolor sit amet, consectetur...',
     image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?q=80&w=2574&auto=format&fit=crop',
-    categoryIcon: '🍹',
+    categoryIcon: require('../../assets/drinks.png'),
   },
   {
     id: 'r4',
@@ -49,7 +50,7 @@ const GRID_ITEMS = [
     rating: 4.8,
     description: 'Lorem ipsum dolor sit amet, consectetur...',
     image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?q=80&w=2513&auto=format&fit=crop',
-    categoryIcon: '🍽️',
+    categoryIcon: require('../../assets/spoons.png'),
   },
   {
     id: 'r5',
@@ -58,7 +59,7 @@ const GRID_ITEMS = [
     rating: 4.6,
     description: 'Lorem ipsum dolor sit amet, consectetur...',
     image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?q=80&w=2669&auto=format&fit=crop',
-    categoryIcon: '🍽️',
+    categoryIcon: require('../../assets/spoons.png'),
   },
 ];
 
@@ -77,6 +78,15 @@ export default function RecommendationsScreen() {
     }));
   };
 
+  const { addToCart } = useCart();
+  const handleAddToCart = (item: any) => {
+    const qty = getQuantity(item.id);
+    for (let i = 0; i < qty; i++) {
+      addToCart(item);
+    }
+    navigation.navigate('Cart');
+  };
+
   const renderGridCard = (item: typeof GRID_ITEMS[0]) => (
     <View key={item.id} style={styles.gridCardContainer}>
       
@@ -86,7 +96,7 @@ export default function RecommendationsScreen() {
         
         {/* Category Icon */}
         <View style={styles.categoryIconBadge}>
-          <Text style={styles.categoryIconText}>{item.categoryIcon}</Text>
+          <Image source={item.categoryIcon} style={styles.categoryIconImage} />
         </View>
 
         {/* Rating Badge (Bottom Left on Image) */}
@@ -112,8 +122,8 @@ export default function RecommendationsScreen() {
             <TouchableOpacity onPress={() => updateQuantity(item.id, 1)}>
               <View style={styles.qtyBtnSmall}><Text style={styles.qtyBtnTextSmall}>+</Text></View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cartBtnSmall}>
-              <Text style={styles.cartIconTextSmall}>🛒</Text>
+            <TouchableOpacity style={styles.cartBtnSmall} onPress={() => handleAddToCart(item)}>
+              <Image source={require('../../assets/cart.png')} style={styles.cartIconImg} />
             </TouchableOpacity>
           </View>
         </View>
@@ -127,10 +137,12 @@ export default function RecommendationsScreen() {
       {/* Yellow Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recommendations</Text>
-        <View style={{ width: 40 }} /> {/* Placeholder */}
+        <TouchableOpacity style={styles.favoriteButton}>
+          <Image source={require('../../assets/favorite.png')} style={styles.favoriteIconImg} />
+        </TouchableOpacity>
       </View>
 
       {/* White Content Container */}
@@ -144,7 +156,7 @@ export default function RecommendationsScreen() {
             <View style={styles.featuredImageWrapper}>
               <Image source={{ uri: FEATURED_ITEM.image }} style={styles.featuredImage} />
               <View style={styles.categoryIconBadge}>
-                <Text style={styles.categoryIconText}>{FEATURED_ITEM.categoryIcon}</Text>
+                <Image source={FEATURED_ITEM.categoryIcon} style={styles.categoryIconImage} />
               </View>
               <View style={styles.ratingBadgeImg}>
                 <Text style={styles.ratingTextImg}>{FEATURED_ITEM.rating.toFixed(1)} ★</Text>
@@ -172,8 +184,8 @@ export default function RecommendationsScreen() {
                   <TouchableOpacity onPress={() => updateQuantity(FEATURED_ITEM.id, 1)}>
                     <View style={styles.qtyBtnSmall}><Text style={styles.qtyBtnTextSmall}>+</Text></View>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.cartBtnSmall}>
-                    <Text style={styles.cartIconTextSmall}>🛒</Text>
+                  <TouchableOpacity style={styles.cartBtnSmall} onPress={() => handleAddToCart(FEATURED_ITEM)}>
+                    <Image source={require('../../assets/cart.png')} style={styles.cartIconImg} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -188,24 +200,7 @@ export default function RecommendationsScreen() {
         </ScrollView>
       </View>
       
-      {/* Bottom Tabs */}
-      <View style={styles.bottomTabsContainer}>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
-          <HomeIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('FoodMenu')}>
-          <MenuIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Favorites' })}>
-          <HeartIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}>
-          <ClipboardIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Help' })}>
-          <HelpIcon color="#fff" size={20} />
-        </TouchableOpacity>
-      </View>
+
 
     </SafeAreaView>
   );
@@ -227,10 +222,22 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange back arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
+  },
+  favoriteButton: {
+    padding: 10,
+    width: 40,
+    alignItems: 'flex-end',
+  },
+  favoriteIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: '#FFFFFF',
   },
   headerTitle: {
     fontSize: 22,
@@ -345,8 +352,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  categoryIconText: {
-    fontSize: 12,
+  categoryIconImage: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
   },
   ratingBadgeImg: {
     position: 'absolute',
@@ -421,9 +430,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     marginLeft: 5,
   },
-  cartIconTextSmall: {
-    color: '#fff',
-    fontSize: 10,
+  cartIconImg: {
+    width: 10,
+    height: 10,
+    resizeMode: 'contain',
+    tintColor: '#FFFFFF',
   },
   
   // Tabs

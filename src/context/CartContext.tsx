@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { CartItem, MenuItem } from '../types';
+import { useUser } from './UserContext';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -15,6 +16,13 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { userId } = useUser();
+
+  useEffect(() => {
+    if (!userId) {
+      setCartItems([]);
+    }
+  }, [userId]);
 
   const addToCart = (item: MenuItem) => {
     setCartItems((prevItems) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -19,8 +19,7 @@ import DeliveryAddressScreen from '../screens/ProfileMenu/DeliveryAddress/Delive
 import AddNewAddressScreen from '../screens/ProfileMenu/DeliveryAddress/AddNewAddressScreen';
 import PaymentMethodsScreen from '../screens/ProfileMenu/PaymentMethod/PaymentMethodsScreen';
 import AddCardScreen from '../screens/ProfileMenu/PaymentMethod/AddCardScreen';
-import ContactUsScreen from '../screens/ProfileMenu/ContactUs/ContactUsScreen';
-import HelpFAQScreen from '../screens/ProfileMenu/HelpAndFAQ/HelpFAQScreen';
+
 import SettingsScreen from '../screens/ProfileMenu/Settings/SettingsScreen';
 import NotificationSettingScreen from '../screens/ProfileMenu/Settings/NotificationSettingScreen';
 import PasswordSettingScreen from '../screens/ProfileMenu/Settings/PasswordSettingScreen';
@@ -44,13 +43,24 @@ import SupportScreen from '../screens/Help/SupportScreen';
 import HelpCenterScreen from '../screens/Help/HelpCenterScreen'; // Forced reload
 import { useCart } from '../context/CartContext';
 import { useThemeColors } from '../theme/colors';
-
+import Icons from '../constants/icons';
 import { RootStackParamList } from '../types';
-
-import { HomeIcon, MenuIcon, HeartIcon, ClipboardIcon, HelpIcon } from '../components/VectorIcons';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const HomeStackNav = createNativeStackNavigator();
+
+function HomeStack() {
+  return (
+    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
+      <HomeStackNav.Screen name="BestSeller" component={BestSellerScreen} />
+      <HomeStackNav.Screen name="Recommendations" component={RecommendationsScreen} />
+      <HomeStackNav.Screen name="FoodDetails" component={FoodDetailsScreen} />
+      <HomeStackNav.Screen name="Filter" component={FilterScreen} />
+    </HomeStackNav.Navigator>
+  );
+}
 
 // Dummy placeholder components for tabs that don't exist yet
 const DummyScreen = () => <View style={{flex: 1, backgroundColor: '#fff'}} />;
@@ -84,28 +94,28 @@ function MainTabs() {
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen} 
-        options={{ tabBarIcon: ({ color }) => <HomeIcon color={color} size={24} /> }}
+        component={HomeStack} 
+        options={{ tabBarIcon: ({ color }) => <Image source={Icons.home} style={{ width: 20, height: 20, tintColor: color }} /> }}
       />
       <Tab.Screen 
         name="FoodMenu" 
         component={FoodMenuScreen} 
-        options={{ tabBarIcon: ({ color }) => <MenuIcon color={color} size={24} /> }}
+        options={{ tabBarIcon: ({ color }) => <Image source={Icons.spoons} style={{ width: 20, height: 20, tintColor: color }} /> }}
       />
       <Tab.Screen 
         name="Favorites" 
         component={FavoritesScreen} 
-        options={{ tabBarIcon: ({ color }) => <HeartIcon color={color} size={24} /> }}
+        options={{ tabBarIcon: ({ color }) => <Image source={Icons.favorite} style={{ width: 20, height: 20, tintColor: color }} /> }}
       />
       <Tab.Screen 
-        name="Orders" // Placeholder for Clipboard
-        component={MyOrdersScreen} // Link Orders tab to MyOrdersScreen
-        options={{ tabBarIcon: ({ color }) => <ClipboardIcon color={color} size={24} /> }}
+        name="Orders"
+        component={MyOrdersScreen}
+        options={{ tabBarIcon: ({ color }) => <Image source={Icons.list} style={{ width: 20, height: 20, tintColor: color }} /> }}
       />
       <Tab.Screen 
         name="Help" 
         component={HelpScreen} 
-        options={{ tabBarIcon: ({ color }) => <HelpIcon color={color} size={24} /> }}
+        options={{ tabBarIcon: ({ color }) => <Image source={Icons.support} style={{ width: 20, height: 20, tintColor: color }} /> }}
       />
     </Tab.Navigator>
   );
@@ -131,13 +141,11 @@ export default function AppNavigator() {
         <Stack.Screen name="AddNewAddress" component={AddNewAddressScreen} />
         <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
         <Stack.Screen name="AddCard" component={AddCardScreen} />
-        <Stack.Screen name="ContactUs" component={ContactUsScreen} />
-        <Stack.Screen name="HelpFAQ" component={HelpFAQScreen} />
+
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="NotificationSetting" component={NotificationSettingScreen} />
         <Stack.Screen name="PasswordSetting" component={PasswordSettingScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="Filter" component={FilterScreen} />
         <Stack.Screen name="Cart" component={CartScreen} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />

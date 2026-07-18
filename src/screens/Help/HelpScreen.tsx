@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -19,7 +19,7 @@ export default function HelpScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.navigate('MainTabs')} style={styles.backBtn}>
-              <Text style={styles.backIcon}>{'<'}</Text>
+              <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Help</Text>
             <View style={styles.backBtn} />
@@ -42,7 +42,7 @@ export default function HelpScreen() {
                 <Text style={styles.menuItemTitle}>Help with the order</Text>
                 <Text style={styles.menuItemSubtitle}>Support</Text>
               </View>
-              <Text style={styles.chevron}>{'>'}</Text>
+              <Image source={require('../../assets/next.png')} style={styles.chevronImg} />
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -53,7 +53,7 @@ export default function HelpScreen() {
                 <Text style={styles.menuItemTitle}>Help center</Text>
                 <Text style={styles.menuItemSubtitle}>General Information</Text>
               </View>
-              <Text style={styles.chevron}>{'>'}</Text>
+              <Image source={require('../../assets/next.png')} style={styles.chevronImg} />
             </TouchableOpacity>
 
             <View style={{ height: 100 }} />
@@ -90,10 +90,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 40,
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: '600',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 20,
@@ -139,9 +140,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: '#999',
   },
-  chevron: {
-    fontSize: 18,
-    color: colors.primary,
-    fontWeight: '700',
+  chevronImg: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   }
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -16,7 +16,7 @@ export default function OrderConfirmedScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <View style={styles.rightPlaceholder} />
       </View>
@@ -29,7 +29,7 @@ export default function OrderConfirmedScreen() {
           </View>
         </View>
 
-        <Text style={styles.titleText}>¡Order Confirmed!</Text>
+        <Text style={styles.titleText}>Order Confirmed! 🎉</Text>
         <Text style={styles.subtitleText}>Your order has been placed{'\n'}successfully</Text>
         
         <Text style={styles.deliveryText}>Delivery by Thu, 29th, 4:00 PM</Text>
@@ -42,24 +42,6 @@ export default function OrderConfirmedScreen() {
       {/* Footer Text & Bottom Tabs */}
       <View style={styles.bottomSection}>
         <Text style={styles.supportText}>If you have any questions, please reach out{'\n'}directly to our customer support</Text>
-        
-        <View style={styles.bottomTabsContainer}>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs')}>
-            <Text style={styles.tabIcon}>🏠</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>🍽️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>🤍</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>📋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn}>
-            <Text style={styles.tabIcon}>🎧</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
     </SafeAreaView>
@@ -81,10 +63,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange back arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   rightPlaceholder: {
     width: 40,

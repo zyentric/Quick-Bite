@@ -41,11 +41,11 @@ export default function FoodDetailsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{item.name}</Text>
         <TouchableOpacity style={styles.heartBtn}>
-          <Text style={styles.heartIcon}>♥</Text>
+          <Image source={require('../../assets/favorite.png')} style={styles.favoriteIconImg} />
         </TouchableOpacity>
       </View>
       
@@ -72,9 +72,9 @@ export default function FoodDetailsScreen() {
           {/* Price & Quantity Row */}
           <View style={styles.priceRow}>
             <View style={styles.priceLeftContainer}>
-              <Text style={styles.priceText}>${item.price.toFixed(2)}</Text>
+              <Text style={styles.priceText}>₹{item.price.toFixed(2)}</Text>
               {item.originalPrice && (
-                <Text style={styles.originalPriceText}>${item.originalPrice.toFixed(2)}</Text>
+                <Text style={styles.originalPriceText}>₹{item.originalPrice.toFixed(2)}</Text>
               )}
             </View>
             
@@ -101,7 +101,7 @@ export default function FoodDetailsScreen() {
                 <View key={option.id} style={styles.optionRow}>
                   <Text style={styles.optionName}>{option.name}</Text>
                   <View style={styles.optionRight}>
-                    <Text style={styles.optionPrice}>${option.price.toFixed(2)}</Text>
+                    <Text style={styles.optionPrice}>₹{option.price.toFixed(2)}</Text>
                     <TouchableOpacity onPress={() => handleToggleAddOn(option.id)}>
                       <View style={[styles.radioOuter, selectedAddOns[option.id] && styles.radioOuterSelected]}>
                         {selectedAddOns[option.id] && <View style={styles.radioInner} />}
@@ -118,30 +118,13 @@ export default function FoodDetailsScreen() {
         {/* Add to Cart Button */}
         <View style={styles.bottomBtnContainer}>
           <TouchableOpacity style={styles.addToCartBtn} onPress={handleAddToCart}>
-            <Text style={styles.addToCartIcon}>🛒</Text>
+            <Image source={require('../../assets/cart.png')} style={styles.cartIconImg} />
             <Text style={styles.addToCartText}>Add to Cart</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Bottom Tabs */}
-      <View style={styles.bottomTabsContainer}>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs')}>
-          <Text style={styles.tabIcon}>🏠</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🍽️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🤍</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>📋</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🎧</Text>
-        </TouchableOpacity>
-      </View>
+
     </SafeAreaView>
   );
 }
@@ -161,10 +144,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange back arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 20,
@@ -179,9 +163,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  heartIcon: {
-    color: colors.primary,
-    fontSize: 16,
+  favoriteIconImg: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   ratingBadgeHeader: {
     backgroundColor: colors.primary,
@@ -356,9 +342,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
   },
-  addToCartIcon: {
-    fontSize: 16,
-    color: '#fff',
+  cartIconImg: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
+    tintColor: '#fff',
     marginRight: 10,
   },
   addToCartText: {

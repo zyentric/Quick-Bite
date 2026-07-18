@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native';
+import { useAppTheme } from '../context/ThemeContext';
 
 export interface ThemeColors {
   background: string;       // Default background (e.g. white or dark gray)
@@ -43,6 +44,12 @@ export const darkColors: ThemeColors = {
 };
 
 export const useThemeColors = (): ThemeColors => {
-  const colorScheme = useColorScheme();
-  return colorScheme === 'dark' ? darkColors : lightColors;
+  const systemColorScheme = useColorScheme();
+  const { themePreference } = useAppTheme();
+  
+  const isDark = 
+    themePreference === 'dark' || 
+    (themePreference === 'system' && systemColorScheme === 'dark');
+
+  return isDark ? darkColors : lightColors;
 };

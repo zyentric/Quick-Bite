@@ -6,6 +6,7 @@ import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
 import { API_URL } from '../../../config/api';
+import { authFetch } from '../../../utils/authFetch';
 import CustomLoader from '../../../components/CustomLoader';
 import CustomAlert from '../../../components/CustomAlert';
 
@@ -22,13 +23,13 @@ export default function MyProfileScreen() {
   const navigation = useNavigation<MyProfileNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userId } = useUser();
+  const { userId, userProfile, refreshUserProfile } = useUser();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [profilePicture, setProfilePicture] = useState('');
+  const [fullName, setFullName] = useState(userProfile?.name || '');
+  const [email, setEmail] = useState(userProfile?.email || '');
+  const [profilePicture, setProfilePicture] = useState(userProfile?.profilePicture || '');
   const [dob, setDob] = useState('09 / 10 / 1991');
-  const [phone, setPhone] = useState('+123 567 89000');
+  const [phone, setPhone] = useState(userProfile?.phone || '');
   
   const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -44,33 +45,7 @@ export default function MyProfileScreen() {
     setAlertVisible(true);
   };
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!userId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/users/profile`, {
-          headers: {
-            'user-id': userId,
-          }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setFullName(data.name || '');
-          setEmail(data.email || '');
-          setProfilePicture(data.profilePicture || '');
-          setPhone(data.phone || '');
-        } else {
-          showAlert('Error', 'Failed to fetch profile details');
-        }
-      } catch (e: any) {
-        showAlert('Network Error', e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [userId]);
+
 
   const handleUpdate = async () => {
     if (!userId) return;
@@ -80,11 +55,10 @@ export default function MyProfileScreen() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/users/profile`, {
+      const res = await authFetch(`${API_URL}/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'user-id': userId,
         },
         body: JSON.stringify({
           name: fullName,
@@ -94,6 +68,7 @@ export default function MyProfileScreen() {
       });
       if (res.ok) {
         // Success
+        await refreshUserProfile();
         navigation.goBack();
       } else {
         const errData = await res.json();
@@ -146,7 +121,7 @@ export default function MyProfileScreen() {
             ) : (
               <View style={[styles.avatarImage, styles.avatarInitialsContainer]}>
                 <Text style={styles.avatarInitialsText}>
-                  {getInitials(fullName || 'John Smith')}
+                  {getInitials(fullName || 'User')}
                 </Text>
               </View>
             )}

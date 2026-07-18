@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Dimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { useUser } from '../../context/UserContext';
 
 type LaunchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Launch'>;
 
@@ -11,14 +12,38 @@ export default function LaunchScreen() {
   const navigation = useNavigation<LaunchScreenNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  const { isAuthenticated, checkingAuth } = useUser();
 
+  // Track whether the minimum splash duration has elapsed
+  const [minSplashDone, setMinSplashDone] = useState(false);
+  // Prevent double-navigation on re-renders
+  const hasNavigated = useRef(false);
+
+  // Start the minimum 2.5s splash timer once on mount
   useEffect(() => {
-    // Automatically navigate to Welcome screen after 2.5 seconds
     const timer = setTimeout(() => {
-      navigation.replace('Welcome');
+      setMinSplashDone(true);
     }, 2500);
     return () => clearTimeout(timer);
-  }, [navigation]);
+  }, []);
+
+  // Navigate only when BOTH conditions are met:
+  //   1. Minimum splash time has elapsed (minSplashDone)
+  //   2. Auth check is complete (!checkingAuth)
+  useEffect(() => {
+    if (!minSplashDone || checkingAuth || hasNavigated.current) {
+      return;
+    }
+    hasNavigated.current = true;
+
+    if (isAuthenticated) {
+      // Valid active session → go straight to the dashboard
+      navigation.replace('MainTabs');
+    } else {
+      // No valid session → go to welcome / auth flow
+      navigation.replace('Welcome');
+    }
+  }, [minSplashDone, checkingAuth, isAuthenticated, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>

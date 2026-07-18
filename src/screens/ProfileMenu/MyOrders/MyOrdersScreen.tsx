@@ -1,45 +1,87 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
-
+import { authFetch } from '../../../utils/authFetch';
+import { API_URL } from '../../../config/api';
 
 type MyOrdersNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyOrders'>;
 
 type TabType = 'Active' | 'Completed' | 'Cancelled';
 
-const activeOrdersMock = [
-  { id: '1', name: 'Strawberry shake', date: '29 Nov, 01:20 pm', itemsCount: 2, price: 20.0, image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=2670&auto=format&fit=crop' }
-];
+interface Order {
+  id: string;
+  name: string;
+  date: string;
+  itemsCount: number;
+  price: number;
+  image: string;
+  status: string;
+}
 
-const completedOrdersMock = [
-  { id: '2', name: 'Chicken Curry', date: '29 Nov, 01:20 pm', itemsCount: 2, price: 50.0, image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2424&auto=format&fit=crop' },
-  { id: '3', name: 'Bean and Vegetable Burger', date: '10 Nov, 01:05 pm', itemsCount: 2, price: 50.0, image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2565&auto=format&fit=crop' },
-  { id: '4', name: 'Coffee Latte', date: '10 Nov, 02:00 am', itemsCount: 1, price: 8.0, image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?q=80&w=2564&auto=format&fit=crop' },
-  { id: '5', name: 'Strawberry Cheesecake', date: '03 Oct, 03:40 pm', itemsCount: 2, price: 22.0, image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=2565&auto=format&fit=crop' }
-];
+const ACTIVE_STATUSES = ['Placed', 'Accepted', 'Preparing', 'OutForDelivery'];
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2424&auto=format&fit=crop';
 
-const cancelledOrdersMock = [
-  { id: '6', name: 'Sushi Wave', date: '02 Nov, 06:00 am', itemsCount: 3, price: 103.0, image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=2670&auto=format&fit=crop' },
-  { id: '7', name: 'Fruit and Berry Tea', date: '12 Oct, 03:15 pm', itemsCount: 2, price: 15.0, image: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=2671&auto=format&fit=crop' }
-];
-
+function mapApiOrder(o: any): Order {
+  const firstItem = o.items?.[0];
+  const name = firstItem?.menuItem?.name || 'Order';
+  const image = firstItem?.menuItem?.image || FALLBACK_IMAGE;
+  const date = new Date(o.createdAt).toLocaleDateString('en-US', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+  return {
+    id: o.id || o._id,
+    name,
+    date,
+    itemsCount: o.items?.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0) || 1,
+    price: o.totalAmount,
+    image,
+    status: o.status,
+  };
+}
 
 export default function MyOrdersScreen() {
   const navigation = useNavigation<MyOrdersNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
   const [activeTab, setActiveTab] = useState<TabType>('Active');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch real orders from backend whenever the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const fetchOrders = async () => {
+        setLoading(true);
+        try {
+          const res = await authFetch(`${API_URL}/orders`);
+          if (res.ok) {
+            const data = await res.json();
+            setOrders(data.map(mapApiOrder));
+          }
+        } catch (e) {
+          console.error('Failed to fetch orders:', e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrders();
+    }, [])
+  );
+
+  const activeOrders = orders.filter(o => ACTIVE_STATUSES.includes(o.status));
+  const completedOrders = orders.filter(o => o.status === 'Delivered');
+  const cancelledOrders = orders.filter(o => o.status === 'Cancelled');
 
   const renderTabs = () => (
     <View style={styles.tabsContainer}>
       {(['Active', 'Completed', 'Cancelled'] as TabType[]).map((tab) => {
         const isActive = activeTab === tab;
         return (
-          <TouchableOpacity 
-            key={tab} 
+          <TouchableOpacity
+            key={tab}
             style={[styles.tabButton, isActive && styles.tabButtonActive]}
             onPress={() => setActiveTab(tab)}
           >
@@ -50,32 +92,36 @@ export default function MyOrdersScreen() {
     </View>
   );
 
-  const renderEmptyState = () => (
+  const renderEmptyState = (message: string) => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>📄</Text>
-      <Text style={styles.emptyText}>You don't have any{'\n'}active orders at this time</Text>
+      <Text style={styles.emptyText}>{message}</Text>
     </View>
   );
 
   const renderActiveList = () => {
-    if (activeOrdersMock.length === 0) return renderEmptyState();
-    
-    return activeOrdersMock.map(order => (
+    if (loading) return <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />;
+    if (activeOrders.length === 0) return renderEmptyState("You don't have any\nactive orders at this time");
+
+    return activeOrders.map(order => (
       <View key={order.id} style={styles.orderCard}>
-        <Image source={{uri: order.image}} style={styles.orderImage} />
+        <Image source={{ uri: order.image }} style={styles.orderImage} />
         <View style={styles.orderInfo}>
           <View style={styles.orderHeader}>
             <Text style={styles.orderName}>{order.name}</Text>
-            <Text style={styles.orderPrice}>${order.price.toFixed(2)}</Text>
+            <Text style={styles.orderPrice}>₹{order.price.toFixed(2)}</Text>
           </View>
           <View style={styles.orderSubInfo}>
             <Text style={styles.orderDate}>{order.date}</Text>
             <Text style={styles.orderItems}>{order.itemsCount} items</Text>
           </View>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusBadge}>{order.status}</Text>
+          </View>
           <View style={styles.actionRow}>
-            <TouchableOpacity 
-              style={styles.cancelBtn} 
-              onPress={() => navigation.navigate('CancelOrder')}
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => navigation.navigate('CancelOrder', { orderId: order.id })}
             >
               <Text style={styles.cancelBtnText}>Cancel Order</Text>
             </TouchableOpacity>
@@ -89,20 +135,23 @@ export default function MyOrdersScreen() {
   };
 
   const renderCompletedList = () => {
-    return completedOrdersMock.map(order => (
+    if (loading) return <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />;
+    if (completedOrders.length === 0) return renderEmptyState("No completed orders yet");
+
+    return completedOrders.map(order => (
       <View key={order.id} style={styles.orderCard}>
-        <Image source={{uri: order.image}} style={styles.orderImage} />
+        <Image source={{ uri: order.image }} style={styles.orderImage} />
         <View style={styles.orderInfo}>
           <View style={styles.orderHeader}>
             <Text style={styles.orderName}>{order.name}</Text>
-            <Text style={styles.orderPrice}>${order.price.toFixed(2)}</Text>
+            <Text style={styles.orderPrice}>₹{order.price.toFixed(2)}</Text>
           </View>
           <View style={styles.orderSubInfo}>
             <Text style={styles.orderDate}>{order.date}</Text>
             <Text style={styles.orderItems}>{order.itemsCount} items</Text>
           </View>
           <View style={styles.actionRow}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.reviewBtn}
               onPress={() => navigation.navigate('LeaveReview')}
             >
@@ -118,13 +167,16 @@ export default function MyOrdersScreen() {
   };
 
   const renderCancelledList = () => {
-    return cancelledOrdersMock.map(order => (
+    if (loading) return <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />;
+    if (cancelledOrders.length === 0) return renderEmptyState("No cancelled orders");
+
+    return cancelledOrders.map(order => (
       <View key={order.id} style={styles.orderCard}>
-        <Image source={{uri: order.image}} style={styles.orderImage} />
+        <Image source={{ uri: order.image }} style={styles.orderImage} />
         <View style={styles.orderInfo}>
           <View style={styles.orderHeader}>
             <Text style={styles.orderName}>{order.name}</Text>
-            <Text style={styles.orderPrice}>${order.price.toFixed(2)}</Text>
+            <Text style={styles.orderPrice}>₹{order.price.toFixed(2)}</Text>
           </View>
           <View style={styles.orderSubInfo}>
             <Text style={styles.orderDate}>{order.date}</Text>
@@ -140,7 +192,7 @@ export default function MyOrdersScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
         <View style={styles.rightPlaceholder} />
@@ -161,7 +213,7 @@ export default function MyOrdersScreen() {
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primaryBackground, // Yellow top
+    backgroundColor: colors.primaryBackground,
   },
   header: {
     flexDirection: 'row',
@@ -174,10 +226,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -185,11 +238,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: '#FFFFFF',
   },
   rightPlaceholder: {
-    width: 40, // Match back button to perfectly center title
+    width: 40,
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: colors.background, // White background
+    backgroundColor: colors.background,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -205,14 +258,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
-    backgroundColor: colors.inputBackground, // Light grey/yellow
+    backgroundColor: colors.inputBackground,
   },
   tabButtonActive: {
-    backgroundColor: colors.primary, // Orange
+    backgroundColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
-    color: colors.primary, // Orange text when inactive (mockup style)
+    color: colors.primary,
     fontWeight: '600',
   },
   tabTextActive: {
@@ -230,7 +283,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   emptyIcon: {
     fontSize: 100,
     marginBottom: 20,
-    opacity: 0.2, // Watermark style
+    opacity: 0.2,
   },
   emptyText: {
     fontSize: 18,
@@ -241,7 +294,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   orderCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff', // Or colors.surface
+    backgroundColor: '#fff',
     marginBottom: 20,
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -271,12 +324,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   orderPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.primary, // Orange
+    color: colors.primary,
   },
   orderSubInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   orderDate: {
     fontSize: 12,
@@ -286,10 +339,23 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
   },
+  statusRow: {
+    marginBottom: 8,
+  },
+  statusBadge: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: '700',
+    backgroundColor: colors.inputBackground,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // Using space-between to match mockup
-    gap: 10, // If using gap
+    justifyContent: 'space-between',
+    gap: 10,
   },
   cancelBtn: {
     backgroundColor: colors.primary,
@@ -305,7 +371,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: 'bold',
   },
   trackBtn: {
-    backgroundColor: colors.inputBackground, // Light orange tint based on mockup
+    backgroundColor: colors.inputBackground,
     paddingVertical: 6,
     paddingHorizontal: 15,
     borderRadius: 15,

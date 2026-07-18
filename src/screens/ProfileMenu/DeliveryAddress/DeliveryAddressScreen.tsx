@@ -1,11 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
-import { API_URL } from '../../../config/api';
 import CustomAlert from '../../../components/CustomAlert';
 
 type DeliveryAddressNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DeliveryAddress'>;
@@ -14,10 +13,12 @@ export default function DeliveryAddressScreen() {
   const navigation = useNavigation<DeliveryAddressNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userId } = useUser();
+  const { userProfile } = useUser();
 
-  const [addresses, setAddresses] = useState<any[]>([]);
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [addresses, setAddresses] = useState<any[]>(userProfile?.savedAddresses || []);
+  const [selectedId, setSelectedId] = useState<string>(
+    userProfile?.savedAddresses?.[0]?.label || ''
+  );
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -29,39 +30,7 @@ export default function DeliveryAddressScreen() {
     setAlertVisible(true);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      const fetchProfile = async () => {
-        if (!userId) return;
-        try {
-          const res = await fetch(`${API_URL}/users/profile`, {
-            headers: {
-              'user-id': userId,
-            }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (isActive) {
-              const fetched = data.savedAddresses || [];
-              setAddresses(fetched);
-              if (fetched.length > 0) {
-                setSelectedId(fetched[0].label);
-              } else {
-                setSelectedId('');
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Error fetching profile addresses:", e);
-        }
-      };
-      fetchProfile();
-      return () => {
-        isActive = false;
-      };
-    }, [userId])
-  );
+
 
   return (
     <SafeAreaView style={styles.container}>

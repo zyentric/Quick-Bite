@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, RefreshControl, Platform, StatusBar } from 'react-native';
 import { useThemeColors } from '../../theme/colors';
 import { API_URL } from '../../config/api';
+import { authFetch } from '../../utils/authFetch';
 import CustomLoader from '../../components/CustomLoader';
 import CustomAlert from '../../components/CustomAlert';
 
@@ -20,6 +21,7 @@ export default function DeliveryDashboardScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
@@ -30,7 +32,7 @@ export default function DeliveryDashboardScreen() {
   const fetchDeliveries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/orders/pending-delivery`);
+      const response = await authFetch(`${API_URL}/orders/pending-delivery`);
       const data = await response.json();
       if (!response.ok) {
         showAlert('Error', data.message || 'Failed to fetch deliveries');
@@ -52,6 +54,12 @@ export default function DeliveryDashboardScreen() {
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchDeliveries();
+    setRefreshing(false);
+  }, []);
+
   useEffect(() => {
     fetchDeliveries();
   }, []);
@@ -62,13 +70,13 @@ export default function DeliveryDashboardScreen() {
       let response;
       if (currentStatus === 'Preparing' || currentStatus === 'Accepted') {
         // Claim and assign driver, transition status to OutForDelivery
-        response = await fetch(`${API_URL}/orders/${id}/assign-delivery`, {
+        response = await authFetch(`${API_URL}/orders/${id}/assign-delivery`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
         });
       } else {
         // Transition status to Delivered
-        response = await fetch(`${API_URL}/orders/${id}/status`, {
+        response = await authFetch(`${API_URL}/orders/${id}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Delivered' }),
@@ -136,7 +144,10 @@ export default function DeliveryDashboardScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>No active deliveries assigned.</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>No deliveries available at this time.</Text>
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
       />
     </SafeAreaView>
@@ -149,6 +160,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 20 : 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     backgroundColor: '#FFC72C', // Signature Gold

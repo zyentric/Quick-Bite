@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import Icons from '../../constants/icons';
 
 type FavoritesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Favorites'>;
 
@@ -66,12 +67,12 @@ const FAVORITE_ITEMS: MenuItem[] = [
 
 const getCategoryIcon = (category?: string) => {
   switch (category) {
-    case 'Meal': return '🍽️';
-    case 'Vegan': return '🥗';
-    case 'Snacks': return '🥨';
-    case 'Dessert': return '🧁';
-    case 'Drinks': return '🍹';
-    default: return '🍽️';
+    case 'Meal': return Icons.meal;
+    case 'Vegan': return Icons.vegan;
+    case 'Snacks': return Icons.snacks;
+    case 'Dessert': return Icons.dessert;
+    case 'Drinks': return Icons.drinks;
+    default: return Icons.meal;
   }
 };
 
@@ -90,7 +91,7 @@ export default function FavoritesScreen() {
       <View style={styles.imageContainer}>
         <Image source={{ uri: item.image }} style={styles.image} />
         <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>{getCategoryIcon(item.category)}</Text>
+          <Image source={getCategoryIcon(item.category)} style={styles.categoryBadgeIcon} />
         </View>
         <TouchableOpacity style={styles.favoriteBadge}>
           <Text style={styles.favoriteBadgeText}>❤️</Text>
@@ -110,7 +111,7 @@ export default function FavoritesScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.navigate('MainTabs')} style={styles.backBtn}>
-              <Text style={styles.backIcon}>{'<'}</Text>
+              <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Favorites</Text>
             <View style={styles.backBtn} />
@@ -160,10 +161,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 40,
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: '600',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 20,
@@ -227,8 +229,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  categoryBadgeText: {
-    fontSize: 16,
+  categoryBadgeIcon: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
   },
   favoriteBadge: {
     position: 'absolute',

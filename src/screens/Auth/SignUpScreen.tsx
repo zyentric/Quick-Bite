@@ -9,7 +9,7 @@ import CustomAlert from '../../components/CustomAlert';
 import CustomLoader from '../../components/CustomLoader';
 import { API_URL } from '../../config/api';
 
-import AsyncStorage from '../../utils/storage';
+// AsyncStorage is no longer used directly — token saving is handled by saveTokens() in UserContext
 import { EyeIcon, EyeOffIcon, GoogleIcon, FacebookIcon } from '../../components/VectorIcons';
 
 const { height } = Dimensions.get('window');
@@ -18,7 +18,7 @@ type SignUpScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 
 
 export default function SignUpScreen() {
   const navigation = useNavigation<SignUpScreenNavigationProp>();
-  const { setRole, setUserId, setIsAuthenticated } = useUser();
+  const { setRole, setUserId, saveTokens } = useUser();
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -119,17 +119,13 @@ export default function SignUpScreen() {
         return;
       }
 
-      // Save token to AsyncStorage
+      // Persist tokens and update auth state atomically (same as login flow)
       if (resData.accessToken) {
-        await AsyncStorage.setItem('userToken', resData.accessToken);
-        if (resData.refreshToken) {
-          await AsyncStorage.setItem('refreshToken', resData.refreshToken);
-        }
+        await saveTokens(resData.accessToken, resData.refreshToken || '');
       }
 
       await setRole(role);
       await setUserId(resData.user?.id || resData.user?._id || null);
-      await setIsAuthenticated(true);
       navigation.navigate('Fingerprint');
     } catch (error: any) {
       showCustomAlert('Network Issue', 'Network error: ' + error.message);

@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
+import { useUser } from '../../context/UserContext';
 
 type CheckoutNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Checkout'>;
 
@@ -46,7 +47,17 @@ export default function CheckoutScreen() {
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
+  const { userProfile } = useUser();
   const { cartItems, totalPrice, updateQuantity } = useCart();
+  
+  const [isAddressModalVisible, setAddressModalVisible] = React.useState(false);
+  const [selectedAddressIndex, setSelectedAddressIndex] = React.useState(0);
+
+  const savedAddresses = userProfile?.savedAddresses || [];
+  const selectedAddress = savedAddresses[selectedAddressIndex];
+  const addressDisplayString = selectedAddress 
+    ? `${selectedAddress.addressLine1}, ${selectedAddress.city} ${selectedAddress.zipCode}`
+    : 'No address selected. Please add one.';
   const taxAndFees = cartItems.length > 0 ? 5.00 : 0;
 
   // Restaurant coordinates: [37.7944, -122.2912]
@@ -61,7 +72,7 @@ export default function CheckoutScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Confirm Order</Text>
         <View style={styles.rightPlaceholder} />
@@ -73,16 +84,20 @@ export default function CheckoutScreen() {
           {/* Shipping Address */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Shipping Address</Text>
-            <TouchableOpacity><Text style={styles.editIcon}>✏️</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setAddressModalVisible(true)} style={styles.editBtn}>
+              <Image source={require('../../assets/pencil.png')} style={styles.pencilIconImg} />
+              <Text style={styles.editBtnText}>Edit</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.addressBox}>
-            <Text style={styles.addressText}>778 Locust View Drive Oaklanda, CA</Text>
+            <Text style={styles.addressText}>{addressDisplayString}</Text>
           </View>
 
           {/* Order Summary */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Order Summary</Text>
-            <TouchableOpacity style={styles.editBtn}>
+            <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.editBtn}>
+              <Image source={require('../../assets/pencil.png')} style={styles.pencilIconImg} />
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -93,22 +108,26 @@ export default function CheckoutScreen() {
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemDate}>29 Nov, 12:00 pm</Text>
-                <TouchableOpacity style={styles.cancelOrderBtn}>
+                <TouchableOpacity style={styles.cancelOrderBtn} onPress={() => updateQuantity(item.id, 0)}>
                   <Text style={styles.cancelOrderText}>Cancel Order</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.itemRight}>
-                <Text style={styles.trashIcon}>🗑️</Text>
+                <Image source={require('../../assets/delete.png')} style={styles.trashIconImg} />
                 <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
                 <Text style={styles.itemCountText}>{item.quantity} items</Text>
                 
                 <View style={styles.qtyControl}>
                   <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity - 1)}>
-                    <Text style={styles.qtyIcon}>✏️ -</Text>
+                    <View style={styles.qtyBtnContainer}>
+                      <Text style={styles.qtyBtnText}>-</Text>
+                    </View>
                   </TouchableOpacity>
                   <Text style={styles.qtyNumber}>{item.quantity}</Text>
                   <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity + 1)}>
-                    <Text style={styles.qtyAddIcon}>+</Text>
+                    <View style={styles.qtyBtnContainer}>
+                      <Text style={styles.qtyBtnText}>+</Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -145,6 +164,54 @@ export default function CheckoutScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Address Selection Bottom Sheet Modal */}
+      <React.Fragment>
+        {isAddressModalVisible && (
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity 
+              style={styles.modalBackgroundTouch} 
+              activeOpacity={1} 
+              onPress={() => setAddressModalVisible(false)} 
+            />
+            <View style={styles.bottomSheet}>
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Select Delivery Address</Text>
+                <TouchableOpacity onPress={() => setAddressModalVisible(false)}>
+                  <Text style={styles.closeBtn}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.sheetScroll}>
+                {savedAddresses.map((addr: any, index: number) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[styles.addressItem, selectedAddressIndex === index && styles.addressItemActive]}
+                    onPress={() => {
+                      setSelectedAddressIndex(index);
+                      setAddressModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.addressLabel}>{addr.label || 'Address'}</Text>
+                    <Text style={styles.addressFullText}>
+                      {addr.addressLine1}, {addr.city}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity 
+                  style={styles.addNewAddressBtn} 
+                  onPress={() => {
+                    setAddressModalVisible(false);
+                    navigation.navigate('AddNewAddress');
+                  }}
+                >
+                  <Text style={styles.addNewAddressText}>+ Add New Address</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        )}
+      </React.Fragment>
+
     </SafeAreaView>
   );
 }
@@ -165,10 +232,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange back arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -202,14 +270,20 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
-  editIcon: {
-    fontSize: 14,
+  pencilIconImg: {
+    width: 12,
+    height: 12,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
+    marginRight: 5,
   },
   editBtn: {
     backgroundColor: colors.inputBackground, // Light peach
     paddingHorizontal: 15,
     paddingVertical: 5,
     borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   editBtnText: {
     color: colors.primary,
@@ -267,9 +341,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  trashIcon: {
-    fontSize: 14,
-    color: colors.primary,
+  trashIconImg: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
     marginBottom: 5,
   },
   itemPrice: {
@@ -286,25 +362,23 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  qtyIcon: {
-    fontSize: 14,
-    color: colors.primary,
-  },
-  qtyNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginHorizontal: 10,
-  },
-  qtyAddIcon: {
-    fontSize: 16,
-    color: colors.primary,
+  qtyBtnContainer: {
     backgroundColor: colors.inputBackground,
     borderRadius: 10,
     width: 20,
     height: 20,
-    textAlign: 'center',
-    lineHeight: 20,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyBtnText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
+  qtyNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
   },
   totalsContainer: {
     marginTop: 20,
@@ -358,5 +432,77 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.primary,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 100,
+  },
+  modalBackgroundTouch: {
+    flex: 1,
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    maxHeight: '70%',
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  closeBtn: {
+    fontSize: 20,
+    color: colors.textMuted,
+    padding: 5,
+  },
+  sheetScroll: {
+    flexGrow: 0,
+  },
+  addressItem: {
+    padding: 15,
+    borderRadius: 15,
+    backgroundColor: '#f5f5f5',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  addressItemActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#fff5ec',
+  },
+  addressLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 5,
+  },
+  addressFullText: {
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  addNewAddressBtn: {
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  addNewAddressText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
   }
 });

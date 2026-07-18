@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, UIManager, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, UIManager, Platform, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -24,11 +24,11 @@ const FAQ_DATA = [
 ];
 
 const CONTACT_METHODS = [
-  { id: 'c1', name: 'Customer service', icon: '🎧' },
-  { id: 'c2', name: 'Website', icon: '🌐' },
-  { id: 'c3', name: 'Whatsapp', icon: '💬' },
-  { id: 'c4', name: 'Facebook', icon: 'f' },
-  { id: 'c5', name: 'Instagram', icon: '📷' },
+  { id: 'c1', name: 'Customer service', icon: require('../../assets/customerService.png') },
+  { id: 'c2', name: 'Website', icon: require('../../assets/website.png') },
+  { id: 'c3', name: 'Whatsapp', icon: require('../../assets/whatsapp.png') },
+  { id: 'c4', name: 'Facebook', icon: require('../../assets/facebook.png') },
+  { id: 'c5', name: 'Instagram', icon: require('../../assets/instagram.png') },
 ];
 
 export default function HelpCenterScreen() {
@@ -58,7 +58,7 @@ export default function HelpCenterScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Text style={styles.backIcon}>{'<'}</Text>
+              <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={styles.headerTitle}>Help Center</Text>
@@ -114,7 +114,7 @@ export default function HelpCenterScreen() {
                     placeholderTextColor="#999"
                   />
                   <TouchableOpacity style={styles.filterIconBtn}>
-                    <Text style={styles.filterIconText}>⚙️</Text>
+                    <Image source={require('../../assets/settings.png')} style={styles.filterIconImg} />
                   </TouchableOpacity>
                 </View>
 
@@ -132,9 +132,9 @@ export default function HelpCenterScreen() {
                           <Text style={[styles.accordionTitle, isExpanded && styles.accordionTitleActive]}>
                             {item.question}
                           </Text>
-                          <Text style={[styles.accordionChevron, isExpanded && styles.accordionChevronActive]}>
-                            {isExpanded ? 'v' : '>'}
-                          </Text>
+                          <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
+                            <Image source={require('../../assets/next.png')} style={styles.accordionChevronImg} />
+                          </View>
                         </TouchableOpacity>
                         
                         {isExpanded && (
@@ -162,12 +162,12 @@ export default function HelpCenterScreen() {
                           activeOpacity={0.7}
                         >
                           <View style={styles.contactRow}>
-                            <Text style={styles.contactIcon}>{item.icon}</Text>
+                            <Image source={item.icon} style={styles.contactIconImg} />
                             <Text style={styles.accordionTitle}>{item.name}</Text>
                           </View>
-                          <Text style={[styles.accordionChevron, isExpanded && styles.accordionChevronActive]}>
-                            {isExpanded ? 'v' : '>'}
-                          </Text>
+                          <View style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}>
+                            <Image source={require('../../assets/next.png')} style={styles.accordionChevronImg} />
+                          </View>
                         </TouchableOpacity>
                         
                         {isExpanded && (
@@ -216,10 +216,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 40,
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: '600',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitleContainer: {
     alignItems: 'center',
@@ -322,9 +323,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     marginLeft: 10,
   },
-  filterIconText: {
-    fontSize: 12,
-    color: '#fff',
+  filterIconImg: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
+    tintColor: '#fff',
   },
   accordionContainer: {
     marginTop: 10,
@@ -347,13 +350,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   accordionTitleActive: {
     color: '#333',
   },
-  accordionChevron: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  accordionChevronActive: {
-    color: '#333',
+  accordionChevronImg: {
+    width: 12,
+    height: 12,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   accordionContent: {
     paddingBottom: 15,
@@ -372,10 +373,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     gap: 15,
   },
-  contactIcon: {
-    fontSize: 24,
-    color: colors.primary,
-    width: 30,
-    textAlign: 'center',
+  contactIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
 });

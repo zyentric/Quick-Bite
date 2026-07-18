@@ -54,7 +54,7 @@ export type RootStackParamList = {
   DeliveryTime: undefined;
   Filter: undefined;
   MyOrders: undefined;
-  CancelOrder: undefined;
+  CancelOrder: { orderId: string };
   CancelSuccess: undefined;
   LeaveReview: undefined;
   RestaurantDetails: { restaurant: Restaurant };

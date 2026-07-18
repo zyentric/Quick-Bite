@@ -141,24 +141,7 @@ export default function BestSellerScreen() {
         </ScrollView>
       </View>
       
-      {/* Bottom Tabs */}
-      <View style={styles.bottomTabsContainer}>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
-          <HomeIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('FoodMenu')}>
-          <MenuIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Favorites' })}>
-          <HeartIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}>
-          <ClipboardIcon color="#fff" size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Help' })}>
-          <HelpIcon color="#fff" size={20} />
-        </TouchableOpacity>
-      </View>
+
 
     </SafeAreaView>
   );

@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ScrollView, SafeAreaView, Dimensions, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { API_URL } from '../../config/api';
-import { GearIcon, CartIcon, BellIcon, UserIcon } from '../../components/VectorIcons';
 import DashboardHeader from '../../components/DashboardHeader';
+import Icons from '../../constants/icons';
 
 const { width } = Dimensions.get('window');
 
 // --- Dummy Data ---
 const dummyCategories = [
-  { id: '1', name: 'Snacks', icon: '🥨' },
-  { id: '2', name: 'Meal', icon: '🍽️' },
-  { id: '3', name: 'Vegan', icon: '🥗' },
-  { id: '4', name: 'Dessert', icon: '🧁' },
-  { id: '5', name: 'Drinks', icon: '🍹' },
+  { id: '1', name: 'Snacks',  icon: Icons.snacks,  tab: 'Snacks' },
+  { id: '2', name: 'Meal',    icon: Icons.meal,    tab: 'Meal' },
+  { id: '3', name: 'Vegan',   icon: Icons.vegan,   tab: 'Vegan' },
+  { id: '4', name: 'Dessert', icon: Icons.dessert, tab: 'Dessert' },
+  { id: '5', name: 'Drinks',  icon: Icons.drinks,  tab: 'Drinks' },
 ];
 
 const DEFAULT_BEST_SELLERS = [
@@ -36,6 +36,15 @@ const DEFAULT_BANNERS = [
   { id: '2', image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?q=80&w=2670&auto=format&fit=crop', text: 'Taco Tuesday\nBuy 1 Get 1 Free!' },
 ];
 
+const getCategoryIcon = (category: string) => {
+  const cat = category.toLowerCase();
+  if (cat.includes('snack')) return Icons.snacks;
+  if (cat.includes('vegan')) return Icons.vegan;
+  if (cat.includes('dessert')) return Icons.dessert;
+  if (cat.includes('drink')) return Icons.drinks;
+  return Icons.meal;
+};
+
 import { useUser } from '../../context/UserContext';
 import ShopkeeperDashboardScreen from './ShopkeeperDashboardScreen';
 import DeliveryDashboardScreen from './DeliveryDashboardScreen';
@@ -48,29 +57,45 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeBanner, setActiveBanner] = useState(0);
   const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
-  useEffect(() => {
-    if (role !== 'shopkeeper' && role !== 'delivery_man') {
-      const fetchMenuItems = async () => {
-        try {
-          const res = await fetch(`${API_URL}/menu-items`);
-          if (res.ok) {
-            const data = await res.json();
-            setMenuItems(data);
-          }
-        } catch (err) {
-          console.error("Error fetching menu items:", err);
-        }
-      };
-      fetchMenuItems();
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { title: 'Good Morning', sub: "Rise And Shine! It's Breakfast Time" };
+    if (hour < 18) return { title: 'Good Afternoon', sub: "Hope you're having a great day!" };
+    return { title: 'Good Evening', sub: "Time to relax and enjoy dinner." };
+  };
+
+  const { title: greetingTitle, sub: greetingSub } = getGreeting();
+
+  const fetchMenuItems = async () => {
+    if (role === 'shopkeeper' || role === 'delivery_man') return;
+    try {
+      const res = await fetch(`${API_URL}/menu-items`);
+      if (res.ok) {
+        const data = await res.json();
+        setMenuItems(data);
+      }
+    } catch (err) {
+      console.error("Error fetching menu items:", err);
     }
+  };
+
+  useEffect(() => {
+    fetchMenuItems();
+  }, [role]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchMenuItems();
+    setRefreshing(false);
   }, [role]);
 
   const currentBestSellers = menuItems.length > 0 
-    ? [...menuItems].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4).map(item => ({
+    ? [...menuItems].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10).map(item => ({
         id: item.id || item._id,
         name: item.name,
         price: item.price,
@@ -82,7 +107,7 @@ export default function HomeScreen() {
     : DEFAULT_BEST_SELLERS;
 
   const currentRecommended = menuItems.length > 0
-    ? [...menuItems].reverse().slice(0, 2).map(item => ({
+    ? [...menuItems].reverse().slice(0, 6).map(item => ({
         id: item.id || item._id,
         name: item.name,
         price: item.price,
@@ -94,7 +119,7 @@ export default function HomeScreen() {
     : DEFAULT_RECOMMENDED;
 
   const currentBanners = menuItems.length > 0
-    ? menuItems.slice(0, 2).map((item, idx) => {
+    ? menuItems.slice(0, 4).map((item, idx) => {
         const discountPrice = item.price * 0.7; // 30% off
         const promoItem = {
           id: item.id || item._id,
@@ -133,6 +158,19 @@ export default function HomeScreen() {
         }
       }));
 
+  const uniqueCategories = menuItems.length > 0 
+    ? Array.from(new Set(menuItems.map(item => item.category).filter(Boolean)))
+    : [];
+
+  const currentCategories = uniqueCategories.length > 0
+    ? uniqueCategories.map((cat, idx) => ({
+        id: String(idx + 1),
+        name: cat,
+        icon: getCategoryIcon(cat),
+        tab: cat
+      }))
+    : dummyCategories;
+
   const handleScroll = (e: any) => {
     const slide = Math.round(e.nativeEvent.contentOffset.x / (width - 40));
     setActiveBanner(slide);
@@ -148,7 +186,14 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false} style={styles.container}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        bounces={true} 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
+      >
         
         {/* Yellow Header Section */}
         <View style={styles.headerSection}>
@@ -157,8 +202,8 @@ export default function HomeScreen() {
           <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
           {/* Greeting */}
-          <Text style={styles.greetingTitle}>Good Morning</Text>
-          <Text style={styles.greetingSub}>Rise And Shine! It's Breakfast Time</Text>
+          <Text style={styles.greetingTitle}>{greetingTitle}</Text>
+          <Text style={styles.greetingSub}>{greetingSub}</Text>
         </View>
 
         {/* White Content Section (Rounded Top) */}
@@ -167,10 +212,15 @@ export default function HomeScreen() {
           {/* Categories */}
           <View style={styles.categoriesWrapper}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesList}>
-              {dummyCategories.map((cat) => (
-                <TouchableOpacity key={cat.id} style={styles.categoryItem} activeOpacity={0.8}>
+              {currentCategories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={styles.categoryItem}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('MainTabs', { screen: 'FoodMenu' })}
+                >
                   <View style={styles.categoryCircle}>
-                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                    <Image source={cat.icon} style={styles.categoryIcon} />
                   </View>
                   <Text style={styles.categoryText}>{cat.name}</Text>
                 </TouchableOpacity>
@@ -182,7 +232,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Best Seller</Text>
             <TouchableOpacity onPress={() => navigation.getParent()?.navigate('BestSeller')}>
-              <Text style={styles.viewAllText}>View All {'>'}</Text>
+              <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
           
@@ -207,7 +257,7 @@ export default function HomeScreen() {
               >
                 <Image source={{ uri: item.image }} style={styles.bestSellerImg} />
                 <View style={styles.priceBadge}>
-                  <Text style={styles.priceText}>${item.price.toFixed(1)}</Text>
+                  <Text style={styles.priceText}>₹{item.price.toFixed(0)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -250,7 +300,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recommend</Text>
             <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Recommendations')}>
-              <Text style={styles.viewAllText}>View All {'>'}</Text>
+              <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
           
@@ -278,7 +328,7 @@ export default function HomeScreen() {
                   <Text style={styles.ratingText}>{item.rating} ⭐ ❤️</Text>
                 </View>
                 <View style={styles.priceBadgeLarge}>
-                  <Text style={styles.priceText}>${item.price.toFixed(1)}</Text>
+                  <Text style={styles.priceText}>₹{item.price.toFixed(0)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -386,18 +436,21 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginHorizontal: 10,
   },
   categoryCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FDF0D5', // Very light yellow
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FDF0D5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#F7C653',
+    padding: 12,
   },
   categoryIcon: {
-    fontSize: 24,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
   categoryText: {
     fontSize: 12,

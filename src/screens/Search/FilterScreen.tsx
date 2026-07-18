@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -9,11 +9,11 @@ import { useThemeColors, ThemeColors } from '../../theme/colors';
 type FilterNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Filter'>;
 
 const MAIN_CATEGORIES = [
-  { id: 'Snacks', icon: '🥨' },
-  { id: 'Meal', icon: '🍽️' },
-  { id: 'Vegan', icon: '🥗' },
-  { id: 'Dessert', icon: '🧁' },
-  { id: 'Drinks', icon: '🍹' },
+  { id: 'Snacks', icon: require('../../assets/snacks.png') },
+  { id: 'Meal', icon: require('../../assets/spoons.png') },
+  { id: 'Vegan', icon: require('../../assets/vegan.png') },
+  { id: 'Dessert', icon: require('../../assets/dessert.png') },
+  { id: 'Drinks', icon: require('../../assets/drinks.png') },
 ];
 
 const SUB_CATEGORIES: Record<string, string[]> = {
@@ -58,16 +58,16 @@ export default function FilterScreen() {
       {/* Yellow Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Filter</Text>
         
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Text style={styles.iconBtnText}>🛒</Text>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
+            <Image source={require('../../assets/cart.png')} style={styles.iconBtnImg} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Text style={styles.iconBtnText}>👤</Text>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.getParent()?.navigate('ProfileMenu')}>
+            <Image source={require('../../assets/user.png')} style={styles.iconBtnImg} />
           </TouchableOpacity>
         </View>
       </View>
@@ -89,7 +89,7 @@ export default function FilterScreen() {
                   styles.mainCatCircle, 
                   selectedMain === cat.id ? styles.mainCatCircleSelected : null
                 ]}>
-                  <Text style={styles.mainCatIcon}>{cat.icon}</Text>
+                  <Image source={cat.icon} style={[styles.mainCatIconImg, selectedMain === cat.id ? styles.mainCatIconImgSelected : null]} />
                 </View>
                 <Text style={styles.mainCatLabel}>{cat.id}</Text>
               </TouchableOpacity>
@@ -104,9 +104,10 @@ export default function FilterScreen() {
             <View style={styles.starsContainer}>
               {[1, 2, 3, 4, 5].map(star => (
                 <TouchableOpacity key={star} onPress={() => setSelectedRating(star)}>
-                  <Text style={[styles.starIcon, star <= selectedRating ? styles.starSelected : styles.starUnselected]}>
-                    {star <= selectedRating ? '★' : '☆'}
-                  </Text>
+                  <Image 
+                    source={require('../../assets/star.png')} 
+                    style={[styles.starIconImg, star <= selectedRating ? styles.starSelectedImg : styles.starUnselectedImg]} 
+                  />
                 </TouchableOpacity>
               ))}
             </View>
@@ -158,26 +159,6 @@ export default function FilterScreen() {
 
         </ScrollView>
       </View>
-      
-      {/* Bottom Tabs */}
-      <View style={styles.bottomTabsContainer}>
-        <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs')}>
-          <Text style={styles.tabIcon}>🏠</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🍽️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🤍</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>📋</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tabBtn}>
-          <Text style={styles.tabIcon}>🎧</Text>
-        </TouchableOpacity>
-      </View>
-
     </SafeAreaView>
   );
 }
@@ -198,10 +179,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange back arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -220,8 +202,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     marginLeft: 10,
   },
-  iconBtnText: {
-    fontSize: 16,
+  iconBtnImg: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   contentContainer: {
     flex: 1,
@@ -276,8 +261,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: '#F7D055', // Yellow for selected? The mockup shows yellow circles with orange borders, wait. Actually the selected one has orange fill? Looking at 4.4-A, Snacks is filled yellow. Oh wait, the mockup has yellow circles. Let's stick with yellow for selected.
     borderColor: '#F7D055',
   },
-  mainCatIcon: {
-    fontSize: 20,
+  mainCatIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: '#F7D055',
+  },
+  mainCatIconImgSelected: {
+    tintColor: '#fff',
   },
   mainCatLabel: {
     fontSize: 12,
@@ -300,15 +291,17 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   starsContainer: {
     flexDirection: 'row',
   },
-  starIcon: {
-    fontSize: 18,
+  starIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
     marginRight: 4,
   },
-  starSelected: {
-    color: colors.primary, // Orange stars
+  starSelectedImg: {
+    tintColor: colors.primary, // Orange stars
   },
-  starUnselected: {
-    color: colors.primary,
+  starUnselectedImg: {
+    tintColor: colors.primary,
     opacity: 0.3, // Outlined/muted star effect
   },
   pillsContainer: {
@@ -392,23 +385,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  bottomTabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.primary,
-    width: '100%',
-    paddingVertical: 20,
-    paddingHorizontal: 30,
-    justifyContent: 'space-between',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    position: 'absolute',
-    bottom: 0,
-  },
-  tabBtn: {
-    padding: 5,
-  },
-  tabIcon: {
-    fontSize: 20,
+  applyBtnText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });

@@ -35,7 +35,7 @@ export default function CartScreen() {
         
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerIcon}>🛒</Text>
+          <Image source={require('../../assets/cart.png')} style={styles.headerIconImg} />
           <Text style={styles.headerTitle}>Cart</Text>
         </View>
 
@@ -140,10 +140,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 40,
   },
-  headerIcon: {
-    fontSize: 24,
-    color: '#fff',
+  headerIconImg: {
+    width: 24,
+    height: 24,
+    tintColor: '#fff',
     marginRight: 10,
+    resizeMode: 'contain',
   },
   headerTitle: {
     fontSize: 24,

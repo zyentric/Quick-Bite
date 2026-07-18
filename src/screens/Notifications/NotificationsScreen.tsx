@@ -1,58 +1,91 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { authFetch } from '../../utils/authFetch';
+import { API_URL } from '../../config/api';
 
 const { width } = Dimensions.get('window');
 
 type NotificationsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Notifications'>;
 
-const NOTIFICATIONS = [
-  { id: '1', title: 'We have added\na product you\nmight like.', icon: '🍽️' },
-  { id: '2', title: 'One of your\nfavorite is on\npromotion.', icon: '🤍' },
-  { id: '3', title: 'Your order has\nbeen delivered', icon: '🛍️' },
-  { id: '4', title: 'The delivery is\non his way', icon: '🛵' },
-];
+const getIconForType = (type?: string) => {
+  switch (type) {
+    case 'order': return require('../../assets/order.png');
+    case 'delivery': return require('../../assets/deliverymen.png');
+    case 'promotion': return require('../../assets/favorite.png');
+    default: return require('../../assets/notification.png');
+  }
+};
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<NotificationsNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      setLoading(true);
+      try {
+        const res = await authFetch(`${API_URL}/notifications`);
+        if (res.ok) {
+          const data = await res.json();
+          setNotifications(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch notifications:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Left side transparent area to allow clicking back or showing background */}
-      <TouchableOpacity 
-        style={styles.leftOverlay} 
-        activeOpacity={1} 
+      {/* Left side transparent area */}
+      <TouchableOpacity
+        style={styles.leftOverlay}
+        activeOpacity={1}
         onPress={() => navigation.goBack()}
       />
 
       {/* Right side curved container */}
       <View style={styles.rightCurvedContainer}>
-        
+
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerIcon}>🔔</Text>
+          <Image source={require('../../assets/notification.png')} style={styles.headerIconImg} />
           <Text style={styles.headerTitle}>Notifications</Text>
         </View>
 
         {/* Notification List */}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {NOTIFICATIONS.map((item, index) => (
-            <View key={item.id}>
-              <TouchableOpacity style={styles.notificationRow} activeOpacity={0.7}>
-                <View style={styles.iconWrapper}>
-                  <Text style={styles.iconText}>{item.icon}</Text>
-                </View>
-                <Text style={styles.notificationText}>{item.title}</Text>
-              </TouchableOpacity>
-              {index < NOTIFICATIONS.length - 1 && <View style={styles.separator} />}
-            </View>
-          ))}
-        </ScrollView>
+        {loading ? (
+          <ActivityIndicator color="#fff" style={{ marginTop: 40 }} />
+        ) : notifications.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 16 }}>No notifications yet.</Text>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {notifications.map((item, index) => (
+              <View key={item._id || item.id || index}>
+                <TouchableOpacity style={styles.notificationRow} activeOpacity={0.7}>
+                  <View style={styles.iconWrapper}>
+                    <Image source={getIconForType(item.type)} style={styles.listIconImg} />
+                  </View>
+                  <Text style={styles.notificationText}>{item.title || item.message}</Text>
+                </TouchableOpacity>
+                {index < notifications.length - 1 && <View style={styles.separator} />}
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -62,16 +95,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    // Using a transparent background so the previous screen shows through if we use a transparent modal presentation.
-    // Otherwise, we'll just give it a solid background matching the Home screen for now.
-    backgroundColor: '#FDD7C4', // Match home background for now
+    backgroundColor: '#FDD7C4',
   },
   leftOverlay: {
-    width: width * 0.15, // 15% width, similar to Profile Menu
+    width: width * 0.15,
   },
   rightCurvedContainer: {
-    flex: 1, 
-    backgroundColor: colors.primary, // Orange
+    flex: 1,
+    backgroundColor: colors.primary,
     borderTopLeftRadius: 50,
     borderBottomLeftRadius: 50,
     paddingTop: 60,
@@ -88,9 +119,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 30,
     marginBottom: 40,
   },
-  headerIcon: {
-    fontSize: 24,
-    color: '#fff',
+  headerIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: '#fff',
     marginRight: 15,
   },
   headerTitle: {
@@ -116,8 +149,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     marginRight: 20,
   },
-  iconText: {
-    fontSize: 20,
+  listIconImg: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   notificationText: {
     flex: 1,
@@ -128,7 +164,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Semi-transparent white line
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     width: '100%',
   }
 });

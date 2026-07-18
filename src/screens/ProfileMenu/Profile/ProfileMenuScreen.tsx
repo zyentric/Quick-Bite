@@ -5,9 +5,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
-import { API_URL } from '../../../config/api';
-import { authFetch } from '../../../utils/authFetch';
 import CustomAlert from '../../../components/CustomAlert';
+import Icons from '../../../constants/icons';
 
 const CURRENT_VERSION = '1.0.0'; // Updated by CI/CD on each build
 
@@ -30,13 +29,13 @@ const { width } = Dimensions.get('window');
 type ProfileMenuNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProfileMenu'>;
 
 const menuItems = [
-  { id: '1', title: 'My Orders', icon: '🛍️', screen: 'Orders' }, // We can route to existing/dummy screens later
-  { id: '2', title: 'My Profile', icon: '👤', screen: 'ProfileMenu' },
-  { id: '3', title: 'Delivery Address', icon: '📍', screen: 'ProfileMenu' },
-  { id: '4', title: 'Payment Methods', icon: '💳', screen: 'ProfileMenu' },
-  { id: '5', title: 'Contact Us', icon: '📞', screen: 'ProfileMenu' },
-  { id: '6', title: 'Help & FAQs', icon: '💬', screen: 'ProfileMenu' },
-  { id: '7', title: 'Settings', icon: '⚙️', screen: 'ProfileMenu' },
+  { id: '1', title: 'My Orders',        icon: Icons.order,     screen: 'Orders' },
+  { id: '2', title: 'My Profile',       icon: Icons.myProfile,  screen: 'ProfileMenu' },
+  { id: '3', title: 'Delivery Address', icon: Icons.location,   screen: 'ProfileMenu' },
+  { id: '4', title: 'Payment Methods',  icon: Icons.card,       screen: 'ProfileMenu' },
+  { id: '5', title: 'Contact Us',       icon: Icons.contacts,   screen: 'ProfileMenu' },
+  { id: '6', title: 'Help & FAQs',      icon: Icons.support,    screen: 'ProfileMenu' },
+  { id: '7', title: 'Settings',         icon: Icons.settings,   screen: 'ProfileMenu' },
 ];
 
 const getInitials = (name: string) => {
@@ -50,8 +49,7 @@ export default function ProfileMenuScreen() {
   const navigation = useNavigation<ProfileMenuNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userId, logout } = useUser();
-  const [profile, setProfile] = useState<any>(null);
+  const { logout, userProfile: profile } = useUser();
 
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
 
@@ -157,30 +155,7 @@ export default function ProfileMenuScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      const fetchProfile = async () => {
-        if (!userId) return;
-        try {
-          // authFetch automatically attaches Bearer token and silently refreshes on 401
-          const res = await authFetch(`${API_URL}/users/profile`);
-          if (res.ok) {
-            const data = await res.json();
-            if (isActive) {
-              setProfile(data);
-            }
-          }
-        } catch (e) {
-          console.error("Error fetching profile:", e);
-        }
-      };
-      fetchProfile();
-      return () => {
-        isActive = false;
-      };
-    }, [userId])
-  );
+
 
   const handleLogout = () => {
     setLogoutModalVisible(true);
@@ -203,7 +178,7 @@ export default function ProfileMenuScreen() {
       
       <View style={styles.leftColumn}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
       </View>
 
@@ -220,13 +195,13 @@ export default function ProfileMenuScreen() {
           ) : (
             <View style={[styles.avatar, styles.avatarInitialsContainer]}>
               <Text style={styles.avatarInitialsText}>
-                {getInitials(profile?.name || 'John Smith')}
+                {getInitials(profile?.name || 'User')}
               </Text>
             </View>
           )}
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{profile?.name || 'John Smith'}</Text>
-            <Text style={styles.userEmail}>{profile?.email || 'johnsmith@example.com'}</Text>
+            <Text style={styles.userName}>{profile?.name || 'User'}</Text>
+            <Text style={styles.userEmail}>{profile?.email || 'user@example.com'}</Text>
           </View>
         </View>
 
@@ -247,9 +222,9 @@ export default function ProfileMenuScreen() {
                 } else if (item.screen === 'ProfileMenu' && item.title === 'Payment Methods') {
                   navigation.navigate('PaymentMethods');
                 } else if (item.screen === 'ProfileMenu' && item.title === 'Contact Us') {
-                  navigation.navigate('ContactUs');
+                  navigation.navigate('HelpCenter');
                 } else if (item.screen === 'ProfileMenu' && item.title === 'Help & FAQs') {
-                  navigation.navigate('HelpFAQ');
+                  navigation.navigate('HelpCenter');
                 } else if (item.screen === 'ProfileMenu' && item.title === 'Settings') {
                   navigation.navigate('Settings');
                 } else {
@@ -258,7 +233,7 @@ export default function ProfileMenuScreen() {
               }}
             >
               <View style={styles.iconContainer}>
-                <Text style={styles.menuIcon}>{item.icon}</Text>
+                <Image source={item.icon} style={styles.menuIconImg} />
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{item.title}</Text>
@@ -282,7 +257,7 @@ export default function ProfileMenuScreen() {
             }}
           >
             <View style={styles.iconContainer}>
-              <Text style={styles.menuIcon}>{updateAvailable ? '🆕' : '✅'}</Text>
+              <Image source={require('../../../assets/cloud.png')} style={{ width: 24, height: 24, tintColor: colors.primary, resizeMode: 'contain' }} />
             </View>
             <View style={styles.menuTextContainer}>
               <View style={styles.updateTextRow}>
@@ -298,7 +273,7 @@ export default function ProfileMenuScreen() {
           {/* Log Out */}
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={handleLogout}>
             <View style={styles.iconContainer}>
-              <Text style={styles.menuIcon}>🚪</Text>
+              <Image source={Icons.logout} style={{ width: 24, height: 24, tintColor: colors.primary }} />
             </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>Log Out</Text>
@@ -431,10 +406,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   rightCurvedContainer: {
     flex: 1, // Takes up the remaining 85% width
@@ -502,6 +478,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   menuIcon: {
     fontSize: 18,
+  },
+  menuIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   menuTextContainer: {
     flex: 1,

@@ -12,8 +12,8 @@ export default function AddCardScreen() {
   const colors = useThemeColors();
   const styles = getStyles(colors);
   
-  const [cardHolder, setCardHolder] = useState('John Smith');
-  const [cardNumber, setCardNumber] = useState('000 000 000 00');
+  const [cardHolder, setCardHolder] = useState('User');
+  const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('04/28');
   const [cvv, setCvv] = useState('0000');
 

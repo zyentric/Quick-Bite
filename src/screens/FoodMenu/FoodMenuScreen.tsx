@@ -8,18 +8,18 @@ import { API_URL } from '../../config/api';
 import CustomLoader from '../../components/CustomLoader';
 import CustomAlert from '../../components/CustomAlert';
 import DashboardHeader from '../../components/DashboardHeader';
-import { HomeIcon, MenuIcon, HeartIcon, ClipboardIcon, HelpIcon } from '../../components/VectorIcons';
+import Icons from '../../constants/icons';
 
 const { width } = Dimensions.get('window');
 
 type FoodMenuNavigationProp = NativeStackNavigationProp<RootStackParamList, 'FoodMenu'>;
 
 const CATEGORIES = [
-  { id: 'Snacks', icon: '🥨' },
-  { id: 'Meal', icon: '🍽️' },
-  { id: 'Vegan', icon: '🥗' },
-  { id: 'Dessert', icon: '🧁' },
-  { id: 'Drinks', icon: '🍹' },
+  { id: 'Snacks',  icon: Icons.snacks },
+  { id: 'Meal',    icon: Icons.meal },
+  { id: 'Vegan',   icon: Icons.vegan },
+  { id: 'Dessert', icon: Icons.dessert },
+  { id: 'Drinks',  icon: Icons.drinks },
 ];
 export default function FoodMenuScreen() {
   const navigation = useNavigation<FoodMenuNavigationProp>();
@@ -137,7 +137,7 @@ export default function FoodMenuScreen() {
                   onPress={() => setActiveTab(cat.id)}
                 >
                   <View style={[styles.categoryCircle, isActive ? styles.categoryCircleActive : null]}>
-                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                    <Image source={cat.icon} style={[styles.categoryIcon, isActive ? styles.categoryIconActive : null]} />
                   </View>
                   <Text style={[styles.categoryLabel, isActive ? styles.categoryLabelActive : null]}>
                     {cat.id}
@@ -149,9 +149,9 @@ export default function FoodMenuScreen() {
 
           {/* Sort By Filter */}
           <View style={styles.sortRow}>
-            <Text style={styles.sortLabel}>Sort By <Text style={styles.sortHighlight}>Popular</Text></Text>
+            <Text style={styles.sortLabel}>Sort: <Text style={styles.sortHighlight}>Popular</Text></Text>
             <TouchableOpacity style={styles.sortIconBtn}>
-              <Text style={styles.sortIconText}>🔃</Text>
+              <Image source={require('../../assets/sortby.png')} style={styles.sortIconImg} />
             </TouchableOpacity>
           </View>
 
@@ -159,25 +159,6 @@ export default function FoodMenuScreen() {
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
             {foodData[activeTab]?.map(renderFoodItem)}
           </ScrollView>
-        </View>
-
-        {/* Bottom Tabs */}
-        <View style={styles.bottomTabsContainer}>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
-            <HomeIcon color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'FoodMenu' })}>
-            <MenuIcon color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'Favorites' })}>
-            <HeartIcon color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'Orders' })}>
-            <ClipboardIcon color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'Help' })}>
-            <HelpIcon color="#fff" size={20} />
-          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -199,54 +180,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 30,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    flex: 1,
-    marginRight: 10,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#000',
-    fontSize: 14,
-  },
-  filterIconBtn: {
-    marginLeft: 5,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterIconText: {
-    fontSize: 12,
-    color: '#fff',
-  },
-  headerIcons: {
-    flexDirection: 'row',
-  },
-  iconBtn: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  iconBtnText: {
-    fontSize: 16,
-  },
   contentSection: {
     flex: 1,
     backgroundColor: '#fff', // White container for categories and list
@@ -258,29 +191,35 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   categoriesContainer: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    height: 100, // Fixed height to not interfere with scroll
+    height: 120, // Adjusted height to accommodate images
   },
   categoryItem: {
     alignItems: 'center',
     marginHorizontal: 10,
   },
   categoryCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FFF4E6',
-    borderWidth: 1,
-    borderColor: '#FDE1D3',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FDF0D5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#F7C653',
+    padding: 12,
   },
   categoryCircleActive: {
-    backgroundColor: '#F7D055',
-    borderColor: '#F7D055',
+    backgroundColor: 'rgba(232, 93, 34, 0.15)', // Light orange to show contrast
+    borderColor: colors.primary,
   },
   categoryIcon: {
-    fontSize: 24,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  categoryIconActive: {
+    opacity: 0.7, // Reduce opacity slightly as requested to make it pop nicely
   },
   categoryLabel: {
     fontSize: 12,
@@ -289,6 +228,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   categoryLabelActive: {
     fontWeight: 'bold',
+    color: colors.primary,
   },
   sortRow: {
     flexDirection: 'row',
@@ -307,11 +247,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sortIconBtn: {
     backgroundColor: colors.inputBackground,
-    padding: 5,
+    padding: 8,
     borderRadius: 15,
   },
-  sortIconText: {
-    fontSize: 14,
+  sortIconImg: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   listContent: {
     paddingHorizontal: 20,

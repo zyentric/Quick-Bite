@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { authFetch } from '../../../utils/authFetch';
+import { API_URL } from '../../../config/api';
 
 type LeaveReviewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LeaveReview'>;
 
@@ -14,9 +16,23 @@ export default function LeaveReviewScreen() {
   
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    navigation.goBack();
+  const handleSubmit = async () => {
+    if (rating === 0) return; // require at least one star
+    setSubmitting(true);
+    try {
+      await authFetch(`${API_URL}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment }),
+      });
+    } catch (e) {
+      console.error('Failed to submit review:', e);
+    } finally {
+      setSubmitting(false);
+      navigation.goBack();
+    }
   };
 
   return (
@@ -64,8 +80,15 @@ export default function LeaveReviewScreen() {
             <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-              <Text style={styles.submitBtnText}>Submit</Text>
+            <TouchableOpacity
+              style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.submitBtnText}>Submit</Text>
+              }
             </TouchableOpacity>
           </View>
 

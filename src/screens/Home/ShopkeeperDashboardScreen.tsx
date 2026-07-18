@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, RefreshControl, Platform, StatusBar } from 'react-native';
 import { useThemeColors } from '../../theme/colors';
 import { API_URL } from '../../config/api';
+import { authFetch } from '../../utils/authFetch';
 import CustomLoader from '../../components/CustomLoader';
 import CustomAlert from '../../components/CustomAlert';
 
@@ -20,6 +21,7 @@ export default function ShopkeeperDashboardScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
@@ -30,7 +32,7 @@ export default function ShopkeeperDashboardScreen() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/orders/pending-shopkeeper`);
+      const response = await authFetch(`${API_URL}/orders/pending-shopkeeper`);
       const data = await response.json();
       if (!response.ok) {
         showAlert('Error', data.message || 'Failed to fetch orders');
@@ -53,6 +55,12 @@ export default function ShopkeeperDashboardScreen() {
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchOrders();
+    setRefreshing(false);
+  }, []);
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -65,11 +73,10 @@ export default function ShopkeeperDashboardScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/orders/${id}/status`, {
+      const response = await authFetch(`${API_URL}/orders/${id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          // Assuming user authorization header or user-id header if required.
         },
         body: JSON.stringify({ status: nextStatus }),
       });
@@ -142,6 +149,9 @@ export default function ShopkeeperDashboardScreen() {
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>No active orders at this time.</Text>
         }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
       />
     </SafeAreaView>
   );
@@ -153,6 +163,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 20 : 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     backgroundColor: '#FFC72C', // Signature Gold

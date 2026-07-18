@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { WebView } from 'react-native-webview';
+import { useUser } from '../../context/UserContext';
 
-const mapHtml = `
+const getMapHtml = (startLat: number, startLng: number, destLat: number, destLng: number) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -22,8 +23,8 @@ const mapHtml = `
 <body>
     <div id="map"></div>
     <script>
-        var destCoords = [37.8044, -122.2712];
-        var startCoords = [37.7944, -122.2912];
+        var destCoords = [${destLat}, ${destLng}];
+        var startCoords = [${startLat}, ${startLng}];
         
         var map = L.map('map').setView(startCoords, 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -72,9 +73,17 @@ export default function DeliveryTimeScreen() {
   const styles = getStyles(colors);
   const webViewRef = React.useRef<any>(null);
 
+  const { userProfile } = useUser();
+  const address = userProfile?.savedAddresses?.[0];
+  const destLat = address?.location?.lat || 37.8044;
+  const destLng = address?.location?.lng || -122.2712;
+  const startLat = 37.7944; // Restaurant lat
+  const startLng = -122.2912; // Restaurant lng
+  const addressString = address ? `${address.addressLine1}, ${address.city}` : 'No saved address';
+
   React.useEffect(() => {
-    const start = { lat: 37.7944, lng: -122.2912 };
-    const dest = { lat: 37.8044, lng: -122.2712 };
+    const start = { lat: startLat, lng: startLng };
+    const dest = { lat: destLat, lng: destLng };
     const steps = 30; // 30 seconds path animation
     let currentStep = 0;
 
@@ -99,7 +108,7 @@ export default function DeliveryTimeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Delivery time</Text>
         <View style={styles.rightPlaceholder} />
@@ -112,15 +121,14 @@ export default function DeliveryTimeScreen() {
             <Text style={styles.sectionTitle}>Shipping Address</Text>
           </View>
           <View style={styles.addressBox}>
-            <Text style={styles.addressText}>778 Locust View Drive Oaklanda, CA</Text>
+            <Text style={styles.addressText}>{addressString}</Text>
           </View>
 
-          {/* Map using Leaflet + OpenStreetMap */}
           <View style={styles.mapPlaceholder}>
             <WebView 
               ref={webViewRef}
               originWhitelist={['*']}
-              source={{ html: mapHtml }}
+              source={{ html: getMapHtml(startLat, startLng, destLat, destLng) }}
               style={styles.mapWebView}
               scrollEnabled={false}
             />
@@ -181,24 +189,6 @@ export default function DeliveryTimeScreen() {
               <Text style={styles.trackOrderBtnText}>Track Order</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.bottomTabsContainer}>
-            <TouchableOpacity style={styles.tabBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] })}>
-              <Text style={styles.tabIcon}>🏠</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabBtn}>
-              <Text style={styles.tabIcon}>🍽️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabBtn}>
-              <Text style={styles.tabIcon}>🤍</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabBtn}>
-              <Text style={styles.tabIcon}>📋</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabBtn}>
-              <Text style={styles.tabIcon}>🎧</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
       </View>
@@ -222,10 +212,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary, // Orange back arrow
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 24,

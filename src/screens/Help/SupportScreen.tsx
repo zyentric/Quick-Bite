@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -39,7 +39,7 @@ export default function SupportScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Text style={styles.backIcon}>{'<'}</Text>
+              <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Support</Text>
             <View style={styles.backBtn} />
@@ -83,7 +83,7 @@ export default function SupportScreen() {
           {/* Input Area */}
           <View style={styles.inputArea}>
             <TouchableOpacity style={styles.iconBtn}>
-              <Text style={styles.iconText}>📎</Text>
+              <Image source={require('../../assets/attacjment.png')} style={styles.iconImg} />
             </TouchableOpacity>
             
             <View style={styles.textInputContainer}>
@@ -97,10 +97,10 @@ export default function SupportScreen() {
             </View>
 
             <TouchableOpacity style={styles.iconBtn}>
-              <Text style={styles.iconText}>🎤</Text>
+              <Image source={require('../../assets/mic.png')} style={styles.iconImg} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendBtn}>
-              <Text style={styles.sendIcon}>➤</Text>
+              <Image source={require('../../assets/send.png')} style={styles.sendIconImg} />
             </TouchableOpacity>
           </View>
         </View>
@@ -135,10 +135,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 40,
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: '600',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 20,
@@ -252,9 +253,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconText: {
-    fontSize: 20,
-    color: '#F7D055',
+  iconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: '#F7D055',
   },
   textInputContainer: {
     flex: 1,
@@ -276,8 +279,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendIcon: {
-    fontSize: 20,
-    color: colors.primary,
+  sendIconImg: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   }
 });

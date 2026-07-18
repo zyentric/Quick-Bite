@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeColors } from '../theme/colors';
-import { GearIcon, CartIcon, BellIcon, UserIcon } from './VectorIcons';
+import Icons from '../constants/icons';
+import { SearchIcon } from './VectorIcons';
 
 interface DashboardHeaderProps {
   searchQuery: string;
@@ -17,36 +18,37 @@ export default function DashboardHeader({ searchQuery, setSearchQuery }: Dashboa
   return (
     <View style={styles.topBar}>
       <View style={styles.searchBox}>
-        <TextInput 
+        <SearchIcon color="#999" size={16} />
+        <TextInput
           style={styles.searchInput}
-          placeholder="Search"
+          placeholder="Search dishes, restaurants..."
           placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.filterIconBtn}
-          onPress={() => navigation.getParent()?.navigate('Filter')}
+          onPress={() => navigation.navigate('Filter')}
         >
-          <GearIcon color="#fff" size={12} />
+          <Image source={Icons.settings} style={styles.filterIcon} />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.headerIcons}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
-          <CartIcon color={colors.primary} size={16} />
+          <Image source={Icons.cart} style={[styles.iconImg, { tintColor: colors.primary }]} />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.iconBtn}
           onPress={() => navigation.getParent()?.navigate('Notifications')}
         >
-          <BellIcon color={colors.primary} size={16} />
+          <Image source={Icons.notification} style={[styles.iconImg, { tintColor: colors.primary }]} />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.iconBtn}
           onPress={() => navigation.getParent()?.navigate('ProfileMenu')}
         >
-          <UserIcon color={colors.primary} size={16} />
+          <Image source={Icons.user} style={[styles.iconImg, { tintColor: colors.primary }]} />
         </TouchableOpacity>
       </View>
     </View>
@@ -59,41 +61,58 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
+    marginBottom: 16,
   },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff', 
+    backgroundColor: '#fff',
     borderRadius: 20,
-    paddingHorizontal: 15,
-    height: 40,
+    paddingHorizontal: 12,
+    height: 42,
     marginRight: 10,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    fontSize: 14,
+    height: 42,
+    fontSize: 13,
     color: '#333',
   },
   filterIconBtn: {
     backgroundColor: colors.primary,
     borderRadius: 12,
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  filterIcon: {
+    width: 14,
+    height: 14,
+    tintColor: '#fff',
   },
   headerIcons: {
     flexDirection: 'row',
     gap: 8,
   },
   iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  iconImg: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
   },
 });

@@ -1,29 +1,62 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { authFetch } from '../../../utils/authFetch';
+import { API_URL } from '../../../config/api';
 
 type CancelOrderNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CancelOrder'>;
+type CancelOrderRouteProp = RouteProp<RootStackParamList, 'CancelOrder'>;
 
 const REASONS = [
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-  'Praesent pellentesque congue lorem, vel tincidunt.',
-  'Duis aute irure dolor in reprehenderit.',
-  'Excepteur sint occaecat cupidatat non proident.'
+  'Ordered by mistake',
+  'Delivery is taking too long',
+  'I want to change my order',
+  'Restaurant is taking too long to confirm',
 ];
 
 export default function CancelOrderScreen() {
   const navigation = useNavigation<CancelOrderNavigationProp>();
+  const route = useRoute<CancelOrderRouteProp>();
+  const { orderId } = route.params;
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  
+
   const [selectedReason, setSelectedReason] = useState<number | null>(null);
   const [otherReason, setOtherReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = () => {
-    navigation.replace('CancelSuccess');
+  const handleSubmit = async () => {
+    const reason = selectedReason !== null
+      ? REASONS[selectedReason]
+      : otherReason.trim();
+
+    if (!reason) {
+      setError('Please select or enter a reason to cancel.');
+      return;
+    }
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await authFetch(`${API_URL}/orders/${orderId}/cancel`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || 'Failed to cancel order. Please try again.');
+        return;
+      }
+      navigation.replace('CancelSuccess');
+    } catch (e: any) {
+      setError('Network error: ' + e.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -38,14 +71,14 @@ export default function CancelOrderScreen() {
 
       <View style={styles.contentContainer}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
+
           <Text style={styles.instructionText}>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pellentesque congue lorem, vel tincidunt auctor.
+            Please let us know why you want to cancel. Your feedback helps us improve our service.
           </Text>
 
           {REASONS.map((reason, index) => (
-            <TouchableOpacity 
-              key={index} 
+            <TouchableOpacity
+              key={index}
               style={styles.reasonRow}
               activeOpacity={0.7}
               onPress={() => setSelectedReason(index)}
@@ -57,19 +90,31 @@ export default function CancelOrderScreen() {
             </TouchableOpacity>
           ))}
 
-          <Text style={styles.othersLabel}>Others</Text>
-          <TextInput 
+          <Text style={styles.othersLabel}>Other reason</Text>
+          <TextInput
             style={styles.textInput}
-            placeholder="Other reason ..."
+            placeholder="Write your reason here..."
             placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={4}
             value={otherReason}
-            onChangeText={setOtherReason}
+            onChangeText={(text) => {
+              setOtherReason(text);
+              if (text.length > 0) setSelectedReason(null); // deselect radio if typing
+            }}
           />
 
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-            <Text style={styles.submitBtnText}>Submit</Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.submitBtnText}>Submit Cancellation</Text>
+            }
           </TouchableOpacity>
 
         </ScrollView>
@@ -105,7 +150,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: '#FFFFFF',
   },
   rightPlaceholder: {
-    width: 40, 
+    width: 40,
   },
   contentContainer: {
     flex: 1,
@@ -142,7 +187,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#E0E0E0', // light grey outline
+    borderColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -163,14 +208,20 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 10,
   },
   textInput: {
-    backgroundColor: colors.inputBackground, // Light yellow/grey
+    backgroundColor: colors.inputBackground,
     borderRadius: 15,
     padding: 15,
     height: 100,
     textAlignVertical: 'top',
     fontSize: 14,
     color: colors.inputText,
-    marginBottom: 40,
+    marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#d32f2f',
+    marginBottom: 15,
+    textAlign: 'center',
   },
   submitBtn: {
     backgroundColor: colors.primary,

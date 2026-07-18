@@ -11,7 +11,7 @@ interface MiniWindow {
 
 declare const window: MiniWindow | undefined;
 
-const isWeb = Platform.OS === 'web' || typeof window !== 'undefined';
+const isWeb = Platform.OS === 'web';
 
 const webStorage = {
   getItem: async (key: string): Promise<string | null> => {

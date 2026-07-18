@@ -1,9 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '../utils/storage';
-import { registerLogout } from '../utils/authFetch';
+import { registerLogout, authFetch } from '../utils/authFetch';
 import { API_URL } from '../config/api';
 
 export type UserRole = 'customer' | 'shopkeeper' | 'delivery_man' | 'admin';
+
+export interface UserProfile {
+  id?: string;
+  _id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  profilePicture?: string;
+  savedAddresses?: any[];
+  role?: string;
+}
 
 interface UserContextType {
   role: UserRole;
@@ -17,6 +28,10 @@ interface UserContextType {
   saveTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   /** Force-logout: clear all tokens and reset auth state. */
   logout: () => Promise<void>;
+  /** Global cached user profile */
+  userProfile: UserProfile | null;
+  /** Manually force a re-fetch of the user profile from the backend */
+  refreshUserProfile: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -26,12 +41,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [userId, setUserIdState] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticatedState] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     setIsAuthenticatedState(false);
     setUserIdState(null);
     setRoleState('customer');
+    setUserProfile(null);
     try {
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('refreshToken');
@@ -113,6 +130,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
     registerLogout(logout);
   }, [logout]);
 
+  // ── Profile Caching ───────────────────────────────────────────────────────
+  const refreshUserProfile = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await authFetch(`${API_URL}/users/profile`);
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data);
+      }
+    } catch (e) {
+      console.error('Error refreshing global profile:', e);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      refreshUserProfile();
+    } else {
+      setUserProfile(null);
+    }
+  }, [isAuthenticated, userId, refreshUserProfile]);
+
   // ── Setters ───────────────────────────────────────────────────────────────
   const setRole = async (newRole: UserRole) => {
     setRoleState(newRole);
@@ -164,6 +203,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         checkingAuth,
         saveTokens,
         logout,
+        userProfile,
+        refreshUserProfile,
       }}
     >
       {children}

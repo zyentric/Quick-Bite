@@ -6,14 +6,9 @@ import { RootStackParamList, MenuItem } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 
-const dummyMenu: MenuItem[] = [
-  { id: '1', name: 'Classic Burger', price: 8.99, description: 'Beef patty with lettuce, tomato, and cheese' },
-  { id: '2', name: 'Fries', price: 3.99, description: 'Crispy golden fries' },
-  { id: '3', name: 'Soda', price: 1.99, description: 'Refreshing cola' },
-  { id: '4', name: 'Onion Rings', price: 4.99, description: 'Battered and deep-fried onion rings' },
-  { id: '5', name: 'Milkshake', price: 5.99, description: 'Creamy vanilla milkshake' },
-];
-
+import { authFetch } from '../../utils/authFetch';
+import { API_URL } from '../../config/api';
+import { ActivityIndicator } from 'react-native';
 type RestaurantDetailsRouteProp = RouteProp<RootStackParamList, 'RestaurantDetails'>;
 type RestaurantDetailsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'RestaurantDetails'>;
 
@@ -25,6 +20,34 @@ export default function RestaurantDetailsScreen() {
   const { addToCart, totalItems, totalPrice } = useCart();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+
+  const [menuItems, setMenuItems] = React.useState<MenuItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const res = await authFetch(`${API_URL}/menu-items`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter or just use data
+          setMenuItems(data.map((item: any) => ({
+            id: item.id || item._id,
+            name: item.name,
+            price: item.price,
+            description: item.description,
+            image: item.image,
+            customizations: item.customizations || []
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch menu", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMenu();
+  }, []);
 
   const renderMenuItem = ({ item }: { item: MenuItem }) => (
     <View style={styles.menuItem}>
@@ -62,11 +85,17 @@ export default function RestaurantDetailsScreen() {
           
           <Text style={styles.sectionTitle}>Menu</Text>
           
-          {dummyMenu.map((item) => (
-            <React.Fragment key={item.id}>
-              {renderMenuItem({ item })}
-            </React.Fragment>
-          ))}
+          {loading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
+          ) : menuItems.length === 0 ? (
+            <Text style={{ textAlign: 'center', marginTop: 20 }}>No menu items available.</Text>
+          ) : (
+            menuItems.map((item) => (
+              <React.Fragment key={item.id}>
+                {renderMenuItem({ item })}
+              </React.Fragment>
+            ))
+          )}
           
           <View style={styles.bottomSpacer} />
         </View>

@@ -18,6 +18,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Create .env file for build
+        run: |
+          echo "API_URL=${{ secrets.API_URL }}" > .env
+          echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> .env
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
