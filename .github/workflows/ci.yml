@@ -1,6 +1,7 @@
 name: Build & Release App
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main, master ]
   pull_request:
@@ -33,9 +34,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Decode Android Keystore
-        run: echo "${{ secrets.ANDROID_RELEASE_KEYSTORE }}" | base64 --decode > android/app/my-upload-key.keystore
-
       - name: Set Version
         id: version
         run: |
@@ -45,7 +43,12 @@ jobs:
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "🔖 Building version: $VERSION_NAME (code: $VERSION_CODE)"
 
+      - name: Decode Android Keystore
+        if: github.event_name != 'pull_request'
+        run: echo "${{ secrets.ANDROID_RELEASE_KEYSTORE }}" | base64 --decode > android/app/my-upload-key.keystore
+
       - name: Build Release APK
+        if: github.event_name != 'pull_request'
         run: |
           cd android
           chmod +x gradlew
@@ -57,7 +60,15 @@ jobs:
             -PMYAPP_UPLOAD_KEY_ALIAS=${{ secrets.KEY_ALIAS }} \
             -PMYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
 
+      - name: Build Debug APK for PR validation
+        if: github.event_name == 'pull_request'
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
       - name: Rename APK with version
+        if: github.event_name != 'pull_request'
         run: |
           mv android/app/build/outputs/apk/release/app-release.apk \
              android/app/build/outputs/apk/release/QuickBite-v${{ steps.version.outputs.VERSION_NAME }}.apk
