@@ -54,11 +54,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease \
             -PVERSION_CODE=${{ steps.version.outputs.VERSION_CODE }} \
-            -PVERSION_NAME=${{ steps.version.outputs.VERSION_NAME }} \
-            -PMYAPP_UPLOAD_STORE_FILE=my-upload-key.keystore \
-            -PMYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} \
-            -PMYAPP_UPLOAD_KEY_ALIAS=${{ secrets.KEY_ALIAS }} \
-            -PMYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
+            -PVERSION_NAME=${{ steps.version.outputs.VERSION_NAME }}
 
       - name: Build Debug APK for PR validation
         if: github.event_name == 'pull_request'
