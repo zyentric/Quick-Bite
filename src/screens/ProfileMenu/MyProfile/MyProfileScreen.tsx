@@ -23,13 +23,25 @@ export default function MyProfileScreen() {
   const navigation = useNavigation<MyProfileNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userId, userProfile, refreshUserProfile } = useUser();
+  const { userId, userProfile, refreshUserProfile, isAuthenticated } = useUser();
 
   const [fullName, setFullName] = useState(userProfile?.name || '');
   const [email, setEmail] = useState(userProfile?.email || '');
   const [profilePicture, setProfilePicture] = useState(userProfile?.profilePicture || '');
-  const [dob, setDob] = useState('09 / 10 / 1991');
+  const [dob, setDob] = useState(userProfile?.dob || '');
   const [phone, setPhone] = useState(userProfile?.phone || '');
+
+  const handleDobChange = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    let formatted = cleaned;
+    if (cleaned.length > 2) {
+      formatted = cleaned.substring(0, 2) + ' / ' + cleaned.substring(2);
+    }
+    if (cleaned.length > 4) {
+      formatted = cleaned.substring(0, 2) + ' / ' + cleaned.substring(2, 4) + ' / ' + cleaned.substring(4, 8);
+    }
+    setDob(formatted);
+  };
   
   const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -110,71 +122,83 @@ export default function MyProfileScreen() {
       </View>
 
       <View style={styles.contentContainer}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
-          <View style={styles.avatarContainer}>
-            {profilePicture ? (
-              <Image 
-                source={{ uri: profilePicture }} 
-                style={styles.avatarImage} 
+        {!isAuthenticated ? (
+          <View style={styles.guestContainer}>
+            <Text style={styles.guestIcon}>🔒</Text>
+            <Text style={styles.guestText}>Please log in to view and edit your profile.</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginButtonText}>Log In</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            
+            <View style={styles.avatarContainer}>
+              {profilePicture ? (
+                <Image 
+                  source={{ uri: profilePicture }} 
+                  style={styles.avatarImage} 
+                />
+              ) : (
+                <View style={[styles.avatarImage, styles.avatarInitialsContainer]}>
+                  <Text style={styles.avatarInitialsText}>
+                    {getInitials(fullName || 'User')}
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity style={styles.cameraIconContainer} onPress={openImageModal}>
+                <Text style={styles.cameraIcon}>📷</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Full Name</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={fullName}
+                onChangeText={setFullName}
               />
-            ) : (
-              <View style={[styles.avatarImage, styles.avatarInitialsContainer]}>
-                <Text style={styles.avatarInitialsText}>
-                  {getInitials(fullName || 'User')}
-                </Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.cameraIconContainer} onPress={openImageModal}>
-              <Text style={styles.cameraIcon}>📷</Text>
-            </TouchableOpacity>
-          </View>
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput 
-              style={styles.textInput}
-              value={fullName}
-              onChangeText={setFullName}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Date of Birth</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={dob}
+                onChangeText={handleDobChange}
+                keyboardType="number-pad"
+                maxLength={14}
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Date of Birth</Text>
-            <TextInput 
-              style={styles.textInput}
-              value={dob}
-              onChangeText={setDob}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput 
+                style={[styles.textInput, styles.disabledInput]}
+                value={email}
+                editable={false}
+                selectTextOnFocus={false}
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput 
-              style={[styles.textInput, styles.disabledInput]}
-              value={email}
-              editable={false}
-              selectTextOnFocus={false}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={phone}
+                onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <TextInput 
-              style={styles.textInput}
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
-          </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate}>
+                <Text style={styles.updateBtnText}>Update Profile</Text>
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate}>
-              <Text style={styles.updateBtnText}>Update Profile</Text>
-            </TouchableOpacity>
-          </View>
-
-        </ScrollView>
+          </ScrollView>
+        )}
       </View>
 
       {/* Profile Picture URL Editor Modal */}
@@ -398,4 +422,39 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: -50,
+  },
+  guestIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  guestText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
 });

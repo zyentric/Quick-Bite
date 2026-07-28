@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { useUser } from '../../../context/UserContext';
 
 type PaymentMethodsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PaymentMethods'>;
 
@@ -16,6 +17,7 @@ export default function PaymentMethodsScreen() {
   const navigation = useNavigation<PaymentMethodsNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  const { isAuthenticated } = useUser();
   
   const [selectedId, setSelectedId] = useState<string>('1');
   const [upiModalVisible, setUpiModalVisible] = useState(false);
@@ -33,53 +35,63 @@ export default function PaymentMethodsScreen() {
       </View>
 
       <View style={styles.contentContainer}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
-          <View style={styles.listContainer}>
-            {PAYMENT_METHODS.map((item, index) => {
-              const isSelected = selectedId === item.id;
-              return (
-                <View key={item.id}>
-                  <TouchableOpacity 
-                    style={styles.paymentRow}
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setSelectedId(item.id);
-                      if (item.id === '2') {
-                        setTempUpiId(upiId);
-                        setUpiModalVisible(true);
-                      }
-                    }}
-                  >
-                    <View style={styles.iconContainer}>
-                      {item.isCard ? (
-                        <Image source={require('../../../assets/card.png')} style={styles.paymentIconImg} />
-                      ) : (
-                        <View style={styles.upiBadge}><Text style={styles.upiBadgeText}>UPI</Text></View>
-                      )}
-                    </View>
-                    <Text style={styles.paymentTitle}>{item.id === '2' && upiId ? upiId : item.title}</Text>
-                    
-                    <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
-                      {isSelected && <View style={styles.radioInner} />}
-                    </View>
-                  </TouchableOpacity>
-                  {index < PAYMENT_METHODS.length - 1 && <View style={styles.separator} />}
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={styles.addButtonContainer}>
-            <TouchableOpacity 
-              style={styles.addCardBtn} 
-              onPress={() => navigation.navigate('AddCard')}
-            >
-              <Text style={styles.addCardBtnText}>Add UPI ID or debit card</Text>
+        {!isAuthenticated ? (
+          <View style={styles.guestContainer}>
+            <Text style={styles.guestIcon}>🔒</Text>
+            <Text style={styles.guestText}>Please log in to manage payment methods.</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginButtonText}>Log In</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            
+            <View style={styles.listContainer}>
+              {PAYMENT_METHODS.map((item, index) => {
+                const isSelected = selectedId === item.id;
+                return (
+                  <View key={item.id}>
+                    <TouchableOpacity 
+                      style={styles.paymentRow}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setSelectedId(item.id);
+                        if (item.id === '2') {
+                          setTempUpiId(upiId);
+                          setUpiModalVisible(true);
+                        }
+                      }}
+                    >
+                      <View style={styles.iconContainer}>
+                        {item.isCard ? (
+                          <Image source={require('../../../assets/card.png')} style={styles.paymentIconImg} />
+                        ) : (
+                          <View style={styles.upiBadge}><Text style={styles.upiBadgeText}>UPI</Text></View>
+                        )}
+                      </View>
+                      <Text style={styles.paymentTitle}>{item.id === '2' && upiId ? upiId : item.title}</Text>
+                      
+                      <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
+                        {isSelected && <View style={styles.radioInner} />}
+                      </View>
+                    </TouchableOpacity>
+                    {index < PAYMENT_METHODS.length - 1 && <View style={styles.separator} />}
+                  </View>
+                );
+              })}
+            </View>
 
-        </ScrollView>
+            <View style={styles.addButtonContainer}>
+              <TouchableOpacity 
+                style={styles.addCardBtn} 
+                onPress={() => navigation.navigate('AddCard')}
+              >
+                <Text style={styles.addCardBtnText}>Add UPI ID or debit card</Text>
+              </TouchableOpacity>
+            </View>
+
+          </ScrollView>
+        )}
       </View>
 
       {/* UPI Input Modal */}
@@ -294,6 +306,41 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginLeft: 10,
   },
   modalSaveText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: -50,
+  },
+  guestIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  guestText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

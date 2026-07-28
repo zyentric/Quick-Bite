@@ -48,6 +48,10 @@ export default function WelcomeScreen() {
           <TouchableOpacity style={styles.signupButton} onPress={handleSignUp} activeOpacity={0.8}>
             <Text style={styles.signupButtonText}>Sign Up</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.guestButton} onPress={() => navigation.replace('MainTabs')} activeOpacity={0.8}>
+            <Text style={styles.guestButtonText}>Continue as Guest</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -141,6 +145,18 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.primary, // Orange text
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  guestButton: {
+    width: '80%',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  guestButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
 

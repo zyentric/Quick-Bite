@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import { useUser } from '../../context/UserContext';
 import Icons from '../../constants/icons';
 
 type FavoritesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Favorites'>;
@@ -78,6 +79,7 @@ const getCategoryIcon = (category?: string) => {
 
 export default function FavoritesScreen() {
   const navigation = useNavigation<FavoritesScreenNavigationProp>();
+  const { isAuthenticated } = useUser();
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
@@ -120,15 +122,25 @@ export default function FavoritesScreen() {
 
         {/* White Content Section */}
         <View style={styles.contentSection}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.subtitle}>It's time to buy your favorite dish.</Text>
-            
-            <View style={styles.grid}>
-              {FAVORITE_ITEMS.map(renderItem)}
+          {!isAuthenticated ? (
+            <View style={styles.guestContainer}>
+              <Text style={styles.guestIcon}>🔒</Text>
+              <Text style={styles.guestText}>Please log in to view your favorites.</Text>
+              <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginButtonText}>Log In</Text>
+              </TouchableOpacity>
             </View>
-            
-            <View style={{ height: 100 }} />
-          </ScrollView>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+              <Text style={styles.subtitle}>It's time to buy your favorite dish.</Text>
+              
+              <View style={styles.grid}>
+                {FAVORITE_ITEMS.map(renderItem)}
+              </View>
+              
+              <View style={{ height: 100 }} />
+            </ScrollView>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -271,4 +283,39 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
   },
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: -50,
+  },
+  guestIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  guestText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
 });
