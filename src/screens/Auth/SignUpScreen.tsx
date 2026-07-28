@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Dimensions, Modal, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -21,12 +21,26 @@ export default function SignUpScreen() {
   const { setRole, setUserId, saveTokens } = useUser();
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [dob, setDob] = useState('');
   const [role, setRoleState] = useState<'customer' | 'shopkeeper' | 'delivery_man'>('customer');
   const [secureText, setSecureText] = useState(true);
+  const [confirmSecureText, setConfirmSecureText] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const handleDobChange = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    let formatted = cleaned;
+    if (cleaned.length > 2) {
+      formatted = cleaned.substring(0, 2) + ' / ' + cleaned.substring(2);
+    }
+    if (cleaned.length > 4) {
+      formatted = cleaned.substring(0, 2) + ' / ' + cleaned.substring(2, 4) + ' / ' + cleaned.substring(4, 8);
+    }
+    setDob(formatted);
+  };
 
   const [selectedCountry, setSelectedCountry] = useState({ code: '+91', name: 'India', flag: '🇮🇳' });
   const [countryModalVisible, setCountryModalVisible] = useState(false);
@@ -93,8 +107,24 @@ export default function SignUpScreen() {
   };
 
   const handleSignUp = async () => {
-    if (!fullName || !email || !password) {
-      showCustomAlert('Required Fields', 'Please fill in Name, Email, and Password');
+    if (!fullName || !email || !password || !confirmPassword) {
+      showCustomAlert('Required Fields', 'Please fill in all required fields.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showCustomAlert('Invalid Email', 'Please enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 6) {
+      showCustomAlert('Weak Password', 'Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showCustomAlert('Password Mismatch', 'Passwords do not match.');
       return;
     }
 
@@ -126,7 +156,7 @@ export default function SignUpScreen() {
 
       await setRole(role);
       await setUserId(resData.user?.id || resData.user?._id || null);
-      navigation.navigate('Fingerprint');
+      navigation.replace('MainTabs');
     } catch (error: any) {
       showCustomAlert('Network Issue', 'Network error: ' + error.message);
     } finally {
@@ -149,8 +179,18 @@ export default function SignUpScreen() {
 
       {/* Top Section */}
       <View style={styles.topSection}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Welcome');
+            }
+          }}
+        >
+          <Image source={require('../../assets/back.png')} style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: colors.primary }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Account</Text>
       </View>
@@ -215,6 +255,23 @@ export default function SignUpScreen() {
           </View>
 
           <View style={styles.formGroup}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <View style={styles.inputContainer}>
+              <TextInput 
+                style={styles.input}
+                placeholder="**************"
+                placeholderTextColor={colors.textMuted}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={confirmSecureText}
+              />
+              <TouchableOpacity style={styles.eyeIcon} onPress={() => setConfirmSecureText(!confirmSecureText)}>
+                {confirmSecureText ? <EyeOffIcon color={colors.primary} size={20} /> : <EyeIcon color={colors.primary} size={20} />}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
             <Text style={styles.label}>Email</Text>
             <View style={styles.inputContainer}>
               <TextInput 
@@ -242,8 +299,8 @@ export default function SignUpScreen() {
                 placeholder="123 456 789"
                 placeholderTextColor={colors.textMuted}
                 value={mobile}
-                onChangeText={setMobile}
-                keyboardType="phone-pad"
+                onChangeText={(text) => setMobile(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
               />
             </View>
           </View>
@@ -256,7 +313,9 @@ export default function SignUpScreen() {
                 placeholder="DD / MM / YYYY"
                 placeholderTextColor={colors.textMuted}
                 value={dob}
-                onChangeText={setDob}
+                onChangeText={handleDobChange}
+                keyboardType="number-pad"
+                maxLength={14}
               />
             </View>
           </View>
@@ -272,11 +331,11 @@ export default function SignUpScreen() {
           <View style={styles.socialSection}>
             <Text style={styles.orText}>or sign up with</Text>
             <View style={styles.socialIconsRow}>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => showCustomAlert('Coming Soon', 'Google sign up will be available in a future update.')} style={styles.socialButton} activeOpacity={0.8}>
                 <GoogleIcon size={18} />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => showCustomAlert('Coming Soon', 'Facebook sign up will be available in a future update.')} style={styles.socialButton} activeOpacity={0.8}>
                 <FacebookIcon size={18} />
                 <Text style={styles.socialButtonText}>Facebook</Text>
               </TouchableOpacity>
@@ -341,6 +400,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 40,
     height: 40,
     justifyContent: 'center',
+    zIndex: 10,
   },
   backButtonText: {
     fontSize: 24,

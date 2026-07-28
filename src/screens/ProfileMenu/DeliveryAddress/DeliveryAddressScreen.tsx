@@ -13,7 +13,7 @@ export default function DeliveryAddressScreen() {
   const navigation = useNavigation<DeliveryAddressNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userProfile } = useUser();
+  const { userProfile, isAuthenticated } = useUser();
 
   const [addresses, setAddresses] = useState<any[]>(userProfile?.savedAddresses || []);
   const [selectedId, setSelectedId] = useState<string>(
@@ -43,61 +43,71 @@ export default function DeliveryAddressScreen() {
       </View>
 
       <View style={styles.contentContainer}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
-          <View style={styles.listContainer}>
-            {addresses.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No saved addresses yet.</Text>
-                <Text style={styles.emptySubText}>Add an address to start ordering!</Text>
-              </View>
-            ) : (
-              addresses.map((item, index) => {
-                const isSelected = selectedId === item.label;
-                const fullAddress = [item.addressLine1, item.addressLine2, item.city, item.zipCode].filter(Boolean).join(', ');
-                return (
-                  <View key={index}>
-                    <TouchableOpacity 
-                      style={styles.addressRow}
-                      activeOpacity={0.7}
-                      onPress={() => setSelectedId(item.label)}
-                    >
-                      <View style={styles.iconContainer}>
-                        <Text style={styles.houseIcon}>
-                          {item.label?.toLowerCase() === 'home' ? '🏠' : item.label?.toLowerCase() === 'work' || item.label?.toLowerCase() === 'office' ? '💼' : '📍'}
-                        </Text>
-                      </View>
-                      <View style={styles.addressInfo}>
-                        <Text style={styles.addressTitle}>{item.label}</Text>
-                        <Text style={styles.addressText}>{fullAddress}</Text>
-                      </View>
-                      <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
-                        {isSelected && <View style={styles.radioInner} />}
-                      </View>
-                    </TouchableOpacity>
-                    {index < addresses.length - 1 && <View style={styles.separator} />}
-                  </View>
-                );
-              })
-            )}
-          </View>
-
-          <View style={styles.addButtonContainer}>
-            <TouchableOpacity 
-              style={styles.addAddressBtn} 
-              onPress={() => {
-                if (addresses.length >= 5) {
-                  showAlert('Limit Reached', 'You can save a maximum of 5 delivery addresses.');
-                  return;
-                }
-                navigation.navigate('AddNewAddress');
-              }}
-            >
-              <Text style={styles.addAddressBtnText}>Add New Address</Text>
+        {!isAuthenticated ? (
+          <View style={styles.guestContainer}>
+            <Text style={styles.guestIcon}>🔒</Text>
+            <Text style={styles.guestText}>Please log in to view delivery addresses.</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginButtonText}>Log In</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            
+            <View style={styles.listContainer}>
+              {addresses.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No saved addresses yet.</Text>
+                  <Text style={styles.emptySubText}>Add an address to start ordering!</Text>
+                </View>
+              ) : (
+                addresses.map((item, index) => {
+                  const isSelected = selectedId === item.label;
+                  const fullAddress = [item.addressLine1, item.addressLine2, item.city, item.zipCode].filter(Boolean).join(', ');
+                  return (
+                    <View key={index}>
+                      <TouchableOpacity 
+                        style={styles.addressRow}
+                        activeOpacity={0.7}
+                        onPress={() => setSelectedId(item.label)}
+                      >
+                        <View style={styles.iconContainer}>
+                          <Text style={styles.houseIcon}>
+                            {item.label?.toLowerCase() === 'home' ? '🏠' : item.label?.toLowerCase() === 'work' || item.label?.toLowerCase() === 'office' ? '💼' : '📍'}
+                          </Text>
+                        </View>
+                        <View style={styles.addressInfo}>
+                          <Text style={styles.addressTitle}>{item.label}</Text>
+                          <Text style={styles.addressText}>{fullAddress}</Text>
+                        </View>
+                        <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
+                          {isSelected && <View style={styles.radioInner} />}
+                        </View>
+                      </TouchableOpacity>
+                      {index < addresses.length - 1 && <View style={styles.separator} />}
+                    </View>
+                  );
+                })
+              )}
+            </View>
 
-        </ScrollView>
+            <View style={styles.addButtonContainer}>
+              <TouchableOpacity 
+                style={styles.addAddressBtn} 
+                onPress={() => {
+                  if (addresses.length >= 5) {
+                    showAlert('Limit Reached', 'You can save a maximum of 5 delivery addresses.');
+                    return;
+                  }
+                  navigation.navigate('AddNewAddress');
+                }}
+              >
+                <Text style={styles.addAddressBtnText}>Add New Address</Text>
+              </TouchableOpacity>
+            </View>
+
+          </ScrollView>
+        )}
       </View>
       <CustomAlert 
         visible={alertVisible}
@@ -236,5 +246,40 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.primary,
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: -50,
+  },
+  guestIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  guestText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });

@@ -8,6 +8,7 @@ import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
 import { useUser } from '../../context/UserContext';
 import { API_URL } from '../../config/api';
+import { RAZORPAY_KEY_ID } from '@env';
 import { authFetch } from '../../utils/authFetch';
 import CustomLoader from '../../components/CustomLoader';
 import CustomAlert from '../../components/CustomAlert';
@@ -136,7 +137,7 @@ export default function PaymentScreen() {
         description: 'QuickBite Food Delivery',
         image: 'https://i.imgur.com/3g7nmJC.png',
         currency: rzpOrderData.currency || 'INR',
-        key: 'rzp_test_1234567890', // Replace with real key in production
+        key: RAZORPAY_KEY_ID || 'rzp_test_T9PQfyBmr3B9g0',
         amount: rzpOrderData.amount,
         name: 'QuickBite',
         order_id: rzpOrderData.id,

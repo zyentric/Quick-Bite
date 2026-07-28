@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
+import { useUser } from '../../context/UserContext';
 
 type FoodDetailsRouteProp = RouteProp<RootStackParamList, 'FoodDetails'>;
 type FoodDetailsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'FoodDetails'>;
@@ -18,6 +19,7 @@ export default function FoodDetailsScreen() {
   const styles = getStyles(colors);
   
   const { addToCart } = useCart();
+  const { isAuthenticated } = useUser();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<Record<string, boolean>>({});
 
@@ -29,6 +31,16 @@ export default function FoodDetailsScreen() {
   };
 
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
+      return;
+    }
+
     // In a real app we'd calculate the final price with add-ons and create a unique cart item
     for (let i = 0; i < quantity; i++) {
       addToCart(item);

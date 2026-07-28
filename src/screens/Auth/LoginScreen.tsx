@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -41,6 +41,12 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!email || !password) {
       showCustomAlert('Required Fields', 'Please enter your email and password');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showCustomAlert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
 
@@ -92,8 +98,18 @@ export default function LoginScreen() {
 
       {/* Top Section */}
       <View style={styles.topSection}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Welcome');
+            }
+          }}
+        >
+          <Image source={require('../../assets/back.png')} style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: colors.primary }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Log In</Text>
       </View>
@@ -149,7 +165,7 @@ export default function LoginScreen() {
 
           <View style={styles.fingerprintSection}>
             <Text style={styles.orText}>or</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Fingerprint')} style={styles.fingerprintButton}>
+            <TouchableOpacity onPress={() => showCustomAlert('Coming Soon', 'Fingerprint login will be available in a future update.')} style={styles.fingerprintButton}>
               <FingerprintIcon color={colors.primary} size={28} />
             </TouchableOpacity>
           </View>
@@ -157,11 +173,11 @@ export default function LoginScreen() {
           <View style={styles.socialSection}>
             <Text style={styles.orText}>or sign up with</Text>
             <View style={styles.socialIconsRow}>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => showCustomAlert('Coming Soon', 'Google login will be available in a future update.')} style={styles.socialButton} activeOpacity={0.8}>
                 <GoogleIcon size={18} />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+              <TouchableOpacity onPress={() => showCustomAlert('Coming Soon', 'Facebook login will be available in a future update.')} style={styles.socialButton} activeOpacity={0.8}>
                 <FacebookIcon size={18} />
                 <Text style={styles.socialButtonText}>Facebook</Text>
               </TouchableOpacity>
@@ -195,6 +211,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 40,
     height: 40,
     justifyContent: 'center',
+    zIndex: 10,
   },
   backButtonText: {
     fontSize: 24,

@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Image, Text } from 'react-native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useThemeColors } from '../theme/colors';
 import Icons from '../constants/icons';
 import { SearchIcon } from './VectorIcons';
+import { useUser } from '../context/UserContext';
 
 interface DashboardHeaderProps {
   searchQuery: string;
@@ -14,6 +15,7 @@ export default function DashboardHeader({ searchQuery, setSearchQuery }: Dashboa
   const navigation = useNavigation<any>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
+  const { isAuthenticated } = useUser();
 
   return (
     <View style={styles.topBar}>
@@ -35,21 +37,39 @@ export default function DashboardHeader({ searchQuery, setSearchQuery }: Dashboa
       </View>
 
       <View style={styles.headerIcons}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
-          <Image source={Icons.cart} style={[styles.iconImg, { tintColor: colors.primary }]} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => navigation.getParent()?.navigate('Notifications')}
-        >
-          <Image source={Icons.notification} style={[styles.iconImg, { tintColor: colors.primary }]} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => navigation.getParent()?.navigate('ProfileMenu')}
-        >
-          <Image source={Icons.user} style={[styles.iconImg, { tintColor: colors.primary }]} />
-        </TouchableOpacity>
+        {!isAuthenticated ? (
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={() => {
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                })
+              );
+            }}
+          >
+            <Text style={styles.loginBtnText}>Log In</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
+              <Image source={Icons.cart} style={[styles.iconImg, { tintColor: colors.primary }]} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.getParent()?.navigate('Notifications')}
+            >
+              <Image source={Icons.notification} style={[styles.iconImg, { tintColor: colors.primary }]} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.getParent()?.navigate('ProfileMenu')}
+            >
+              <Image source={Icons.user} style={[styles.iconImg, { tintColor: colors.primary }]} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
@@ -115,4 +135,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     height: 18,
     resizeMode: 'contain',
   },
+  loginBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  }
 });

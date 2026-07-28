@@ -5,6 +5,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
+import { useUser } from '../../context/UserContext';
+import { CommonActions } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +18,7 @@ export default function CartScreen() {
   const styles = getStyles(colors);
   
   const { cartItems, totalPrice, totalItems, updateQuantity } = useCart();
+  const { isAuthenticated } = useUser();
 
   const taxAndFees = cartItems.length > 0 ? 5.00 : 0;
   const deliveryFee = cartItems.length > 0 ? 3.00 : 0;
@@ -100,7 +103,18 @@ export default function CartScreen() {
 
               <TouchableOpacity 
                 style={styles.checkoutBtn}
-                onPress={() => navigation.navigate('Checkout')}
+                onPress={() => {
+                  if (!isAuthenticated) {
+                    navigation.dispatch(
+                      CommonActions.reset({
+                        index: 0,
+                        routes: [{ name: 'Login' }],
+                      })
+                    );
+                    return;
+                  }
+                  navigation.navigate('Checkout');
+                }}
               >
                 <Text style={styles.checkoutBtnText}>Checkout</Text>
               </TouchableOpacity>

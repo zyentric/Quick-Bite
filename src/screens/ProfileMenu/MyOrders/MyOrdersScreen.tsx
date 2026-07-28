@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { useUser } from '../../../context/UserContext';
 import { authFetch } from '../../../utils/authFetch';
 import { API_URL } from '../../../config/api';
 
@@ -50,10 +51,13 @@ export default function MyOrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const { isAuthenticated } = useUser();
+
   // Fetch real orders from backend whenever the screen is focused
   useFocusEffect(
     useCallback(() => {
       const fetchOrders = async () => {
+        if (!isAuthenticated) return;
         setLoading(true);
         try {
           const res = await authFetch(`${API_URL}/orders`);
@@ -68,7 +72,7 @@ export default function MyOrdersScreen() {
         }
       };
       fetchOrders();
-    }, [])
+    }, [isAuthenticated])
   );
 
   const activeOrders = orders.filter(o => ACTIVE_STATUSES.includes(o.status));
@@ -125,7 +129,10 @@ export default function MyOrdersScreen() {
             >
               <Text style={styles.cancelBtnText}>Cancel Order</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.trackBtn}>
+            <TouchableOpacity 
+              style={styles.trackBtn}
+              onPress={() => navigation.navigate('DeliveryTime')}
+            >
               <Text style={styles.trackBtnText}>Track Driver</Text>
             </TouchableOpacity>
           </View>
@@ -199,12 +206,24 @@ export default function MyOrdersScreen() {
       </View>
 
       <View style={styles.contentContainer}>
-        {renderTabs()}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {activeTab === 'Active' && renderActiveList()}
-          {activeTab === 'Completed' && renderCompletedList()}
-          {activeTab === 'Cancelled' && renderCancelledList()}
-        </ScrollView>
+        {!isAuthenticated ? (
+          <View style={styles.guestContainer}>
+            <Text style={styles.guestIcon}>🔒</Text>
+            <Text style={styles.guestText}>Please log in to view your orders.</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginButtonText}>Log In</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {renderTabs()}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+              {activeTab === 'Active' && renderActiveList()}
+              {activeTab === 'Completed' && renderCompletedList()}
+              {activeTab === 'Cancelled' && renderCancelledList()}
+            </ScrollView>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -412,5 +431,40 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   cancelledStatus: {
     fontSize: 12,
     color: colors.textMuted,
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: -50,
+  },
+  guestIcon: {
+    fontSize: 80,
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  guestText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });

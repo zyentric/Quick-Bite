@@ -29,13 +29,13 @@ const { width } = Dimensions.get('window');
 type ProfileMenuNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProfileMenu'>;
 
 const menuItems = [
-  { id: '1', title: 'My Orders',        icon: Icons.order,     screen: 'Orders' },
-  { id: '2', title: 'My Profile',       icon: Icons.myProfile,  screen: 'ProfileMenu' },
-  { id: '3', title: 'Delivery Address', icon: Icons.location,   screen: 'ProfileMenu' },
-  { id: '4', title: 'Payment Methods',  icon: Icons.card,       screen: 'ProfileMenu' },
-  { id: '5', title: 'Contact Us',       icon: Icons.contacts,   screen: 'ProfileMenu' },
-  { id: '6', title: 'Help & FAQs',      icon: Icons.support,    screen: 'ProfileMenu' },
-  { id: '7', title: 'Settings',         icon: Icons.settings,   screen: 'ProfileMenu' },
+  { id: '1', title: 'My Orders', icon: Icons.order, screen: 'Orders' },
+  { id: '2', title: 'My Profile', icon: Icons.myProfile, screen: 'ProfileMenu' },
+  { id: '3', title: 'Delivery Address', icon: Icons.location, screen: 'ProfileMenu' },
+  { id: '4', title: 'Payment Methods', icon: Icons.card, screen: 'ProfileMenu' },
+  { id: '5', title: 'Contact Us', icon: Icons.contacts, screen: 'ProfileMenu' },
+  { id: '6', title: 'Help & FAQs', icon: Icons.support, screen: 'ProfileMenu' },
+  { id: '7', title: 'Settings', icon: Icons.settings, screen: 'ProfileMenu' },
 ];
 
 const getInitials = (name: string) => {
@@ -49,7 +49,7 @@ export default function ProfileMenuScreen() {
   const navigation = useNavigation<ProfileMenuNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { logout, userProfile: profile } = useUser();
+  const { logout, userProfile: profile, isAuthenticated } = useUser();
 
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
 
@@ -116,18 +116,20 @@ export default function ProfileMenuScreen() {
 
     if (Platform.OS === 'android') {
       try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'Allow QuickBite to save the update APK to your device.',
-            buttonPositive: 'Allow',
-            buttonNegative: 'Cancel',
+        if (Number(Platform.Version) < 33) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+            {
+              title: 'Storage Permission',
+              message: 'Allow QuickBite to save the update APK to your device.',
+              buttonPositive: 'Allow',
+              buttonNegative: 'Cancel',
+            }
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            showAlert('Permission Denied', 'Storage permission is needed to download the update.');
+            return;
           }
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          showAlert('Permission Denied', 'Storage permission is needed to download the update.');
-          return;
         }
       } catch (e) {
         console.warn('Permission error:', e);
@@ -175,7 +177,7 @@ export default function ProfileMenuScreen() {
     <SafeAreaView style={styles.container}>
       {/* The main container has a light peach background.
           The left side has the back button. */}
-      
+
       <View style={styles.leftColumn}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
@@ -184,13 +186,13 @@ export default function ProfileMenuScreen() {
 
       {/* The large curved orange container */}
       <View style={styles.rightCurvedContainer}>
-        
+
         {/* User Info Header */}
         <View style={styles.userInfoSection}>
           {profile?.profilePicture ? (
-            <Image 
-              source={{ uri: profile.profilePicture }} 
-              style={styles.avatar} 
+            <Image
+              source={{ uri: profile.profilePicture }}
+              style={styles.avatar}
             />
           ) : (
             <View style={[styles.avatar, styles.avatarInitialsContainer]}>
@@ -208,9 +210,9 @@ export default function ProfileMenuScreen() {
         {/* Menu Items */}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuScrollContent}>
           {menuItems.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={styles.menuItem} 
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuItem}
               activeOpacity={0.7}
               onPress={() => {
                 if (item.screen === 'Orders') {
@@ -243,9 +245,9 @@ export default function ProfileMenuScreen() {
           ))}
 
           {/* System Update */}
-          <TouchableOpacity 
-            style={styles.menuItem} 
-            activeOpacity={0.7} 
+          <TouchableOpacity
+            style={styles.menuItem}
+            activeOpacity={0.7}
             onPress={() => {
               if (updateAvailable) {
                 setDownloadState('idle');
@@ -270,16 +272,28 @@ export default function ProfileMenuScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Log Out */}
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={handleLogout}>
-            <View style={styles.iconContainer}>
-              <Image source={Icons.logout} style={{ width: 24, height: 24, tintColor: colors.primary }} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Log Out</Text>
-              <View style={styles.separator} />
-            </View>
-          </TouchableOpacity>
+          {/* Log In / Log Out */}
+          {isAuthenticated ? (
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={handleLogout}>
+              <View style={styles.iconContainer}>
+                <Image source={Icons.logout} style={{ width: 24, height: 24, tintColor: colors.primary }} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Log Out</Text>
+                <View style={styles.separator} />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => navigation.navigate('Login')}>
+              <View style={styles.iconContainer}>
+                <Image source={Icons.logout} style={{ width: 24, height: 24, tintColor: colors.primary }} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Log In / Sign Up</Text>
+                <View style={styles.separator} />
+              </View>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
 
@@ -312,9 +326,8 @@ export default function ProfileMenuScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.updateModalContent}>
-            {/* Header */}
             <View style={styles.updateModalHeader}>
-              <Text style={styles.updateModalEmoji}>🚀</Text>
+              <Image source={require('../../../assets/cloud.png')} style={styles.updateModalIconImg} />
               <Text style={styles.updateModalTitle}>Update Available</Text>
               <Text style={styles.updateModalVersion}>v{CURRENT_VERSION} → v{latestVersion}</Text>
             </View>
@@ -373,7 +386,7 @@ export default function ProfileMenuScreen() {
                 >
                   <Text style={styles.modalBtnConfirmText}>
                     {downloadState === 'downloading' ? `${downloadProgress}% Downloading` :
-                     downloadState === 'error' ? 'Open Browser' : '⬇ Download APK'}
+                      downloadState === 'error' ? 'Open Browser' : '⬇ Download APK'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -382,7 +395,7 @@ export default function ProfileMenuScreen() {
         </View>
       </Modal>
 
-      <CustomAlert 
+      <CustomAlert
         visible={alertVisible}
         title={alertTitle}
         message={alertMessage}
@@ -515,9 +528,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  updateModalEmoji: {
-    fontSize: 44,
-    marginBottom: 8,
+  updateModalIconImg: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
+    marginBottom: 12,
   },
   updateModalTitle: {
     fontSize: 20,

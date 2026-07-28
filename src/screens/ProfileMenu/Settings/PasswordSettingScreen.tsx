@@ -27,7 +27,17 @@ export default function PasswordSettingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Welcome');
+            }
+          }}
+        >
           <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Password Setting</Text>
@@ -111,7 +121,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: 30,
   },
   backButton: {
-    padding: 10,
+    padding: 5,
+    zIndex: 10,
   },
   backIconImg: {
     width: 20,
