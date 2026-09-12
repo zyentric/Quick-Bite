@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Dimensions, TouchableOpacity, Image, FlatList, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, FlatList, TouchableOpacity, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import Icons from '../../constants/icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -12,24 +13,24 @@ type OnboardingScreenNavigationProp = NativeStackNavigationProp<RootStackParamLi
 const onboardingData = [
   {
     id: '1',
-    title: 'Order For Food',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.',
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=2681&auto=format&fit=crop', // Pizza
-    icon: '🍕'
+    title: 'Order Fresh Food',
+    description: 'Discover restaurants near you and browse menus with hundreds of fresh, delicious dishes ready to order in seconds.',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=2681&auto=format&fit=crop',
+    iconAsset: Icons.meal
   },
   {
     id: '2',
-    title: 'Easy Payment',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.',
-    image: 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?q=80&w=2574&auto=format&fit=crop', // Ice cream
-    icon: '💳'
+    title: 'Easy & Secure Payment',
+    description: 'Pay smoothly with UPI, credit/debit cards, or Cash on Delivery with full safety and instant confirmation.',
+    image: 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?q=80&w=2574&auto=format&fit=crop',
+    iconAsset: Icons.card
   },
   {
     id: '3',
-    title: 'Fast Delivery',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.',
-    image: 'https://images.unsplash.com/photo-1461023058943-07cb14a6ed45?q=80&w=2670&auto=format&fit=crop', // Coffee/Drink
-    icon: '🛵'
+    title: 'Fast Live Delivery',
+    description: 'Track your food delivery in real time on a live GPS map straight to your door — quick, hot, and hassle-free.',
+    image: 'https://images.unsplash.com/photo-1461023058943-07cb14a6ed45?q=80&w=2670&auto=format&fit=crop',
+    iconAsset: Icons.deliverymen
   }
 ];
 
@@ -62,7 +63,9 @@ export default function OnboardingScreen() {
         
         {/* Bottom Card */}
         <View style={styles.cardContainer}>
-          <Text style={styles.icon}>{item.icon}</Text>
+          <View style={styles.iconWrapper}>
+            <Image source={item.iconAsset} style={styles.iconImg} />
+          </View>
           <Text style={styles.title}>{item.title}</Text>
           <Text style={styles.description}>{item.description}</Text>
           
@@ -91,27 +94,18 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity 
-        style={styles.skipButton} 
-        onPress={() => navigation.replace('MainTabs')}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.skipText}>Skip {'>'}</Text>
-      </TouchableOpacity>
-
-      <FlatList 
+    <View style={styles.container}>
+      <FlatList
         ref={flatListRef}
         data={onboardingData}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        bounces={false}
-        onMomentumScrollEnd={onScroll}
+        onScroll={onScroll}
+        keyExtractor={(item) => item.id}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -120,87 +114,85 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  skipButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
-    padding: 10,
-  },
-  skipText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
   slide: {
-    width,
-    height: '100%',
-    backgroundColor: colors.background,
+    width: width,
+    height: height,
   },
   image: {
-    width: '100%',
-    height: height * 0.55,
+    width: width,
+    height: height * 0.65,
     resizeMode: 'cover',
   },
   cardContainer: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    marginTop: -30,
+    position: 'absolute',
+    bottom: 0,
+    width: width,
+    height: height * 0.45,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
     paddingHorizontal: 30,
-    paddingTop: 30,
+    paddingTop: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
   },
-  icon: {
-    fontSize: 40,
-    marginBottom: 15,
+  iconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF9E6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#F7D055',
+  },
+  iconImg: {
+    width: 26,
+    height: 26,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.primary,
-    marginBottom: 15,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.primary, 
+    marginBottom: 8,
+    textAlign: 'center',
   },
   description: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 30,
+    lineHeight: 18,
+    paddingHorizontal: 10,
+    marginBottom: 20,
   },
   indicatorContainer: {
     flexDirection: 'row',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   indicator: {
-    width: 10,
-    height: 4,
-    backgroundColor: colors.border,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E0E0E0',
     marginHorizontal: 4,
-    borderRadius: 2,
   },
   indicatorActive: {
-    width: 20,
     backgroundColor: colors.primary,
+    width: 22,
   },
   button: {
     backgroundColor: colors.primary,
+    width: '100%',
     paddingVertical: 14,
-    paddingHorizontal: 40,
     borderRadius: 25,
-    width: '80%',
     alignItems: 'center',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -208,4 +200,3 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -25,7 +26,8 @@ export default function CartScreen() {
   const finalTotal = totalPrice + taxAndFees + deliveryFee;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" />
       {/* Left side transparent overlay */}
       <TouchableOpacity 
         style={styles.leftOverlay} 
@@ -67,7 +69,7 @@ export default function CartScreen() {
                     <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
                   </View>
                   <View style={styles.itemRight}>
-                    <Text style={styles.itemDate}>29/11/24{'\n'}12:00</Text>
+                    <Text style={styles.itemDate}>{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}{'\n'}{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
                     <View style={styles.qtyControl}>
                       <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity - 1)}>
                         <Text style={styles.qtyBtn}>-</Text>

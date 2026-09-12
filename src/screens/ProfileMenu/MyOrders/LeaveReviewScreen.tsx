@@ -1,34 +1,49 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
-import { authFetch } from '../../../utils/authFetch';
 import { API_URL } from '../../../config/api';
+import { authFetch } from '../../../utils/authFetch';
+import { StarIcon } from '../../../components/icons';
 
 type LeaveReviewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LeaveReview'>;
+type LeaveReviewRouteProp = RouteProp<RootStackParamList, 'LeaveReview'>;
 
 export default function LeaveReviewScreen() {
   const navigation = useNavigation<LeaveReviewNavigationProp>();
+  const route = useRoute<LeaveReviewRouteProp>();
+  const { orderId, orderName, orderImage } = route.params || {};
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  
+
   const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
-    if (rating === 0) return; // require at least one star
+    if (rating === 0) {
+      setError('Please select a star rating.');
+      return;
+    }
+    setError('');
     setSubmitting(true);
     try {
-      await authFetch(`${API_URL}/reviews`, {
+      const res = await authFetch(`${API_URL}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, comment }),
+        body: JSON.stringify({ order: orderId, rating, feedback }),
       });
-    } catch (e) {
-      console.error('Failed to submit review:', e);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || 'Failed to submit review.');
+        return;
+      }
+    } catch (e: any) {
+      setError('Network error: ' + e.message);
     } finally {
       setSubmitting(false);
       navigation.goBack();
@@ -36,10 +51,15 @@ export default function LeaveReviewScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Image source={require('../../../assets/back.png')} style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: colors.primary }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Leave a Review</Text>
         <View style={styles.rightPlaceholder} />
@@ -48,33 +68,33 @@ export default function LeaveReviewScreen() {
       <View style={styles.contentContainer}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2424&auto=format&fit=crop' }} 
-            style={styles.dishImage} 
+          <Image
+            source={{ uri: orderImage || 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2424&auto=format&fit=crop' }}
+            style={styles.dishImage}
           />
-          <Text style={styles.dishTitle}>Chicken Curry</Text>
+          <Text style={styles.dishTitle}>{orderName || 'Your Order'}</Text>
           <Text style={styles.subtitle}>We'd love to know what you{'\n'}think of your dish.</Text>
 
           <View style={styles.starsContainer}>
             {[1, 2, 3, 4, 5].map(star => (
-              <TouchableOpacity key={star} onPress={() => setRating(star)}>
-                <Text style={[styles.star, rating >= star ? styles.starFilled : {}]}>
-                  {rating >= star ? '⭐' : '☆'}
-                </Text>
+              <TouchableOpacity key={star} onPress={() => setRating(star)} style={{ marginHorizontal: 6 }}>
+                <StarIcon size={32} color={rating >= star ? '#F59E0B' : '#E5E7EB'} />
               </TouchableOpacity>
             ))}
           </View>
 
           <Text style={styles.commentLabel}>Leave us your comment!</Text>
-          <TextInput 
+          <TextInput
             style={styles.textInput}
             placeholder="Write Review ..."
             placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={4}
-            value={comment}
-            onChangeText={setComment}
+            value={feedback}
+            onChangeText={setFeedback}
           />
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
@@ -226,5 +246,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
 });

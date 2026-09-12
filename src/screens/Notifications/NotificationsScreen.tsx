@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -25,6 +26,7 @@ export default function NotificationsScreen() {
   const colors = useThemeColors();
   const styles = getStyles(colors);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,7 +36,11 @@ export default function NotificationsScreen() {
         const res = await authFetch(`${API_URL}/notifications`);
         if (res.ok) {
           const data = await res.json();
-          setNotifications(data);
+          // Backend returns { notifications: [], unreadCount: number }
+          setNotifications(data.notifications || data || []);
+          setUnreadCount(data.unreadCount || 0);
+          // Mark all as read after fetching
+          authFetch(`${API_URL}/notifications/mark-read`, { method: 'PUT' }).catch(() => {});
         }
       } catch (e) {
         console.error('Failed to fetch notifications:', e);
@@ -47,7 +53,8 @@ export default function NotificationsScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FDD7C4" />
       {/* Left side transparent area */}
       <TouchableOpacity
         style={styles.leftOverlay}
@@ -105,7 +112,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primary,
     borderTopLeftRadius: 50,
     borderBottomLeftRadius: 50,
-    paddingTop: 60,
+    paddingTop: 30,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: -5, height: 0 },

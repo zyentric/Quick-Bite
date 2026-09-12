@@ -1,10 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
+import { authFetch } from '../../../utils/authFetch';
+import { API_URL } from '../../../config/api';
+import { LockIcon, HomeBuildingIcon, WorkBuildingIcon, LocationPinIcon } from '../../../components/icons';
 import CustomAlert from '../../../components/CustomAlert';
 
 type DeliveryAddressNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DeliveryAddress'>;
@@ -33,10 +37,15 @@ export default function DeliveryAddressScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Image source={require('../../../assets/back.png')} style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: colors.primary }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Delivery Address</Text>
         <View style={styles.rightPlaceholder} />
@@ -45,7 +54,9 @@ export default function DeliveryAddressScreen() {
       <View style={styles.contentContainer}>
         {!isAuthenticated ? (
           <View style={styles.guestContainer}>
-            <Text style={styles.guestIcon}>🔒</Text>
+            <View style={{ marginBottom: 20 }}>
+              <LockIcon size={64} color={colors.primary} />
+            </View>
             <Text style={styles.guestText}>Please log in to view delivery addresses.</Text>
             <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
               <Text style={styles.loginButtonText}>Log In</Text>
@@ -72,9 +83,13 @@ export default function DeliveryAddressScreen() {
                         onPress={() => setSelectedId(item.label)}
                       >
                         <View style={styles.iconContainer}>
-                          <Text style={styles.houseIcon}>
-                            {item.label?.toLowerCase() === 'home' ? '🏠' : item.label?.toLowerCase() === 'work' || item.label?.toLowerCase() === 'office' ? '💼' : '📍'}
-                          </Text>
+                          {item.label?.toLowerCase() === 'home' ? (
+                            <HomeBuildingIcon size={20} color={colors.primary} />
+                          ) : item.label?.toLowerCase() === 'work' || item.label?.toLowerCase() === 'office' ? (
+                            <WorkBuildingIcon size={20} color={colors.primary} />
+                          ) : (
+                            <LocationPinIcon size={20} color={colors.primary} />
+                          )}
                         </View>
                         <View style={styles.addressInfo}>
                           <Text style={styles.addressTitle}>{item.label}</Text>

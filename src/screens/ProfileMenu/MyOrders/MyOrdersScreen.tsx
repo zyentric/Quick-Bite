@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
@@ -7,6 +8,7 @@ import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
 import { authFetch } from '../../../utils/authFetch';
 import { API_URL } from '../../../config/api';
+import { DocumentIcon, LockIcon, CancelCircleIcon } from '../../../components/icons';
 
 type MyOrdersNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyOrders'>;
 
@@ -22,7 +24,7 @@ interface Order {
   status: string;
 }
 
-const ACTIVE_STATUSES = ['Placed', 'Accepted', 'Preparing', 'OutForDelivery'];
+const ACTIVE_STATUSES = ['PendingPayment', 'Placed', 'Accepted', 'Preparing', 'ReadyForPickup', 'OutForDelivery'];
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?q=80&w=2424&auto=format&fit=crop';
 
 function mapApiOrder(o: any): Order {
@@ -98,7 +100,9 @@ export default function MyOrdersScreen() {
 
   const renderEmptyState = (message: string) => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>📄</Text>
+      <View style={{ marginBottom: 12 }}>
+        <DocumentIcon size={48} color="#9CA3AF" />
+      </View>
       <Text style={styles.emptyText}>{message}</Text>
     </View>
   );
@@ -129,9 +133,9 @@ export default function MyOrdersScreen() {
             >
               <Text style={styles.cancelBtnText}>Cancel Order</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.trackBtn}
-              onPress={() => navigation.navigate('DeliveryTime')}
+              onPress={() => navigation.navigate('DeliveryTime', { orderId: order.id })}
             >
               <Text style={styles.trackBtnText}>Track Driver</Text>
             </TouchableOpacity>
@@ -160,7 +164,11 @@ export default function MyOrdersScreen() {
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={styles.reviewBtn}
-              onPress={() => navigation.navigate('LeaveReview')}
+              onPress={() => navigation.navigate('LeaveReview', {
+                orderId: order.id,
+                orderName: order.name,
+                orderImage: order.image,
+              })}
             >
               <Text style={styles.reviewBtnText}>Leave a review</Text>
             </TouchableOpacity>
@@ -189,14 +197,18 @@ export default function MyOrdersScreen() {
             <Text style={styles.orderDate}>{order.date}</Text>
             <Text style={styles.orderItems}>{order.itemsCount} items</Text>
           </View>
-          <Text style={styles.cancelledStatus}>❌ Order cancelled</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            <CancelCircleIcon size={14} color="#EF4444" />
+            <Text style={styles.cancelledStatus}> Order cancelled</Text>
+          </View>
         </View>
       </View>
     ));
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
@@ -208,7 +220,9 @@ export default function MyOrdersScreen() {
       <View style={styles.contentContainer}>
         {!isAuthenticated ? (
           <View style={styles.guestContainer}>
-            <Text style={styles.guestIcon}>🔒</Text>
+            <View style={{ marginBottom: 20 }}>
+              <LockIcon size={64} color={colors.primary} />
+            </View>
             <Text style={styles.guestText}>Please log in to view your orders.</Text>
             <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
               <Text style={styles.loginButtonText}>Log In</Text>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Image, Modal, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
@@ -7,6 +8,8 @@ import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
 import { API_URL } from '../../../config/api';
 import { authFetch } from '../../../utils/authFetch';
+import { LockIcon, CameraIcon } from '../../../components/icons';
+import Icons from '../../../constants/icons';
 import CustomLoader from '../../../components/CustomLoader';
 import CustomAlert from '../../../components/CustomAlert';
 
@@ -104,7 +107,8 @@ export default function MyProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <CustomLoader visible={loading} message="Processing..." />
       <CustomAlert 
         visible={alertVisible}
@@ -115,16 +119,18 @@ export default function MyProfileScreen() {
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={Icons.back} style={{ width: 20, height: 20, tintColor: '#FFFFFF', resizeMode: 'contain' }} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My profile</Text>
+        <Text style={styles.headerTitle}>My Profile</Text>
         <View style={styles.rightPlaceholder} />
       </View>
 
       <View style={styles.contentContainer}>
         {!isAuthenticated ? (
           <View style={styles.guestContainer}>
-            <Text style={styles.guestIcon}>🔒</Text>
+            <View style={{ marginBottom: 20 }}>
+              <LockIcon size={64} color={colors.primary} />
+            </View>
             <Text style={styles.guestText}>Please log in to view and edit your profile.</Text>
             <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
               <Text style={styles.loginButtonText}>Log In</Text>
@@ -147,7 +153,7 @@ export default function MyProfileScreen() {
                 </View>
               )}
               <TouchableOpacity style={styles.cameraIconContainer} onPress={openImageModal}>
-                <Text style={styles.cameraIcon}>📷</Text>
+                <CameraIcon size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 

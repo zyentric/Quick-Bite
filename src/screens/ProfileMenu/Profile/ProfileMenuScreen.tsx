@@ -1,14 +1,30 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Linking, PermissionsAndroid, Platform } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Dimensions,
+  Modal,
+  Linking,
+  PermissionsAndroid,
+  Platform,
+  StatusBar,
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
-import CustomAlert from '../../../components/CustomAlert';
 import Icons from '../../../constants/icons';
+import { APP_VERSION, APP_CONFIG } from '../../../constants/appConfig';
 
-const CURRENT_VERSION = '1.0.0'; // Updated by CI/CD on each build
+const CURRENT_VERSION = APP_VERSION;
 
 // Compare semantic versions: returns true if remote > local
 const isNewerVersion = (remote: string, local: string): boolean => {
@@ -28,16 +44,6 @@ const { width } = Dimensions.get('window');
 
 type ProfileMenuNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProfileMenu'>;
 
-const menuItems = [
-  { id: '1', title: 'My Orders', icon: Icons.order, screen: 'Orders' },
-  { id: '2', title: 'My Profile', icon: Icons.myProfile, screen: 'ProfileMenu' },
-  { id: '3', title: 'Delivery Address', icon: Icons.location, screen: 'ProfileMenu' },
-  { id: '4', title: 'Payment Methods', icon: Icons.card, screen: 'ProfileMenu' },
-  { id: '5', title: 'Contact Us', icon: Icons.contacts, screen: 'ProfileMenu' },
-  { id: '6', title: 'Help & FAQs', icon: Icons.support, screen: 'ProfileMenu' },
-  { id: '7', title: 'Settings', icon: Icons.settings, screen: 'ProfileMenu' },
-];
-
 const getInitials = (name: string) => {
   if (!name) return 'U';
   const parts = name.trim().split(/\s+/);
@@ -51,64 +57,74 @@ export default function ProfileMenuScreen() {
   const styles = getStyles(colors);
   const { logout, userProfile: profile, isAuthenticated } = useUser();
 
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [latestVersion, setLatestVersion] = useState('');
+  const [latestVersion, setLatestVersion] = useState(CURRENT_VERSION);
   const [updateUrl, setUpdateUrl] = useState('');
   const [releaseNotes, setReleaseNotes] = useState('');
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   // In-app update download modal
   const [isUpdateModalVisible, setUpdateModalVisible] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0); // 0–100
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadState, setDownloadState] = useState<'idle' | 'downloading' | 'done' | 'error'>('idle');
 
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState('');
-  const [alertMessage, setAlertMessage] = useState('');
-
-  const showAlert = (title: string, message: string) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertVisible(true);
-  };
-
+  // Check update on mount
   useEffect(() => {
-    const checkUpdate = async () => {
-      try {
-        const res = await fetch('https://api.github.com/repos/zyentric/Quick-Bite/releases/latest', {
-          headers: { 'User-Agent': 'QuickBiteApp/1.0' }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const tag = data.tag_name || '';
-          const cleanedTag = tag.replace(/^v/, '');
-          setLatestVersion(cleanedTag);
-          setReleaseNotes(data.body || '');
-
-          const assets = data.assets || [];
-          const apkAsset = assets.find((a: any) => a.name.endsWith('.apk'));
-          if (apkAsset && apkAsset.browser_download_url) {
-            setUpdateUrl(apkAsset.browser_download_url);
-          } else {
-            setUpdateUrl(data.html_url || 'https://github.com/zyentric/Quick-Bite/releases');
-          }
-
-          if (cleanedTag && isNewerVersion(cleanedTag, CURRENT_VERSION)) {
-            setUpdateAvailable(true);
-          }
-        }
-      } catch (err) {
-        console.log('Failed to check latest GitHub release:', err);
-      }
-    };
-    checkUpdate();
+    checkUpdate(false);
   }, []);
 
-  const handleDownloadUpdate = async () => {
-    if (!updateUrl) return;
+  const checkUpdate = async (openModalOnDone = false) => {
+    setIsCheckingUpdate(true);
+    try {
+      const res = await fetch('https://api.github.com/repos/zyentric/Quick-Bite/releases/latest', {
+        headers: { 'User-Agent': 'QuickBiteApp/1.0' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const tag = data.tag_name || '';
+        const cleanedTag = tag.replace(/^v/, '');
+        setLatestVersion(cleanedTag || CURRENT_VERSION);
+        setReleaseNotes(data.body || 'Performance improvements and bug fixes.');
 
-    // If no direct APK URL, fall back to browser
+        const assets = data.assets || [];
+        const apkAsset = assets.find((a: any) => a.name.endsWith('.apk'));
+        if (apkAsset && apkAsset.browser_download_url) {
+          setUpdateUrl(apkAsset.browser_download_url);
+        } else {
+          setUpdateUrl(data.html_url || 'https://github.com/zyentric/Quick-Bite/releases');
+        }
+
+        if (cleanedTag && isNewerVersion(cleanedTag, CURRENT_VERSION)) {
+          setUpdateAvailable(true);
+        } else {
+          setUpdateAvailable(false);
+        }
+      }
+    } catch (err) {
+      console.log('Failed to check latest GitHub release:', err);
+    } finally {
+      setIsCheckingUpdate(false);
+      if (openModalOnDone) {
+        setDownloadState('idle');
+        setDownloadProgress(0);
+        setUpdateModalVisible(true);
+      }
+    }
+  };
+
+  const handleSystemUpdatePress = () => {
+    checkUpdate(true);
+  };
+
+  const handleDownloadUpdate = async () => {
+    if (!updateUrl) {
+      Linking.openURL('https://github.com/zyentric/Quick-Bite/releases');
+      return;
+    }
+
     if (!updateUrl.endsWith('.apk')) {
       Linking.openURL(updateUrl);
       return;
@@ -127,7 +143,7 @@ export default function ProfileMenuScreen() {
             }
           );
           if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            showAlert('Permission Denied', 'Storage permission is needed to download the update.');
+            Linking.openURL(updateUrl);
             return;
           }
         }
@@ -143,10 +159,7 @@ export default function ProfileMenuScreen() {
       const response = await fetch(updateUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      // React Native's fetch polyfill does not expose response.body as a
-      // ReadableStream, so streaming via getReader() is not supported.
-      // Use arrayBuffer() instead, which works in React Native.
-      setDownloadProgress(50); // show progress while buffer is being received
+      setDownloadProgress(50);
       await response.arrayBuffer();
 
       setDownloadProgress(100);
@@ -154,164 +167,228 @@ export default function ProfileMenuScreen() {
     } catch (err: any) {
       console.log('Download error:', err);
       setDownloadState('error');
+      Linking.openURL(updateUrl);
     }
   };
 
-
-
-  const handleLogout = () => {
+  const handleLogoutPress = () => {
     setLogoutModalVisible(true);
   };
 
   const confirmLogout = async () => {
-    setLogoutModalVisible(false);
-    // Clear all stored tokens and reset auth state before navigating
-    await logout();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Welcome' }],
-    });
+    try {
+      setLogoutModalVisible(false);
+      await logout();
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Welcome' }],
+        })
+      );
+    } catch (e) {
+      console.error('Logout error:', e);
+      navigation.navigate('Welcome');
+    }
   };
 
+  const generalItems = [
+    { id: 'orders', title: 'My Orders', icon: Icons.order, action: () => navigation.navigate('MyOrders') },
+    { id: 'profile', title: 'My Profile', icon: Icons.myProfile, action: () => navigation.navigate('MyProfile') },
+    { id: 'address', title: 'Delivery Address', icon: Icons.location, action: () => navigation.navigate('DeliveryAddress') },
+    { id: 'payments', title: 'Payment Methods', icon: Icons.card, action: () => navigation.navigate('PaymentMethods') },
+  ];
+
+  const profileItems = [
+    { id: 'settings', title: 'Settings', icon: Icons.settings, action: () => navigation.navigate('Settings') },
+    { id: 'help', title: 'Help & FAQs', icon: Icons.support, action: () => navigation.navigate('HelpCenter') },
+    { id: 'contact', title: 'Contact Us', icon: Icons.contacts, action: () => navigation.navigate('HelpCenter') },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* The main container has a light peach background.
-          The left side has the back button. */}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      <View style={styles.leftColumn}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
-        </TouchableOpacity>
-      </View>
-
-      {/* The large curved orange container */}
-      <View style={styles.rightCurvedContainer}>
-
-        {/* User Info Header */}
-        <View style={styles.userInfoSection}>
-          {profile?.profilePicture ? (
-            <Image
-              source={{ uri: profile.profilePicture }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarInitialsContainer]}>
-              <Text style={styles.avatarInitialsText}>
-                {getInitials(profile?.name || 'User')}
-              </Text>
-            </View>
-          )}
-          <View style={styles.userDetails}>
-            <Text style={styles.userName}>{profile?.name || 'User'}</Text>
-            <Text style={styles.userEmail}>{profile?.email || 'user@example.com'}</Text>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Top Brand Curved Header Banner */}
+        <View style={styles.headerBanner}>
+        {/* Top bar with Brand Title and Close (X) button */}
+        <View style={styles.topBarRow}>
+          <View style={styles.brandRow}>
+            <Image source={Icons.logo} style={styles.brandLogo} />
+            <Text style={styles.brandTitle}>QuickBite</Text>
           </View>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Menu Items */}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuScrollContent}>
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => {
-                if (item.screen === 'Orders') {
-                  navigation.navigate('MyOrders');
-                } else if (item.screen === 'ProfileMenu' && item.title === 'My Profile') {
-                  navigation.navigate('MyProfile');
-                } else if (item.screen === 'ProfileMenu' && item.title === 'Delivery Address') {
-                  navigation.navigate('DeliveryAddress');
-                } else if (item.screen === 'ProfileMenu' && item.title === 'Payment Methods') {
-                  navigation.navigate('PaymentMethods');
-                } else if (item.screen === 'ProfileMenu' && item.title === 'Contact Us') {
-                  navigation.navigate('HelpCenter');
-                } else if (item.screen === 'ProfileMenu' && item.title === 'Help & FAQs') {
-                  navigation.navigate('HelpCenter');
-                } else if (item.screen === 'ProfileMenu' && item.title === 'Settings') {
-                  navigation.navigate('Settings');
-                } else {
-                  console.log('Navigate to', item.screen);
-                }
-              }}
-            >
-              <View style={styles.iconContainer}>
-                <Image source={item.icon} style={styles.menuIconImg} />
+        {/* User Info Avatar + Name + Subtitle */}
+        <View style={styles.userProfileSection}>
+          <View style={styles.avatarWrapper}>
+            {profile?.profilePicture ? (
+              <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitial}>{getInitials(profile?.name || 'User')}</Text>
               </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                <View style={styles.separator} />
-              </View>
-            </TouchableOpacity>
-          ))}
-
-          {/* System Update */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.7}
-            onPress={() => {
-              if (updateAvailable) {
-                setDownloadState('idle');
-                setDownloadProgress(0);
-                setUpdateModalVisible(true);
-              } else {
-                showAlert('Up to Date', `QuickBite v${CURRENT_VERSION} is the latest version.`);
-              }
-            }}
-          >
-            <View style={styles.iconContainer}>
-              <Image source={require('../../../assets/cloud.png')} style={{ width: 24, height: 24, tintColor: colors.primary, resizeMode: 'contain' }} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <View style={styles.updateTextRow}>
-                <Text style={styles.menuTitle}>System Update</Text>
-                <Text style={[styles.versionValue, updateAvailable && styles.versionValueUpdate]}>
-                  {updateAvailable ? `v${latestVersion} available!` : `v${CURRENT_VERSION} (Latest)`}
-                </Text>
-              </View>
-              <View style={styles.separator} />
-            </View>
-          </TouchableOpacity>
-
-          {/* Log In / Log Out */}
-          {isAuthenticated ? (
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={handleLogout}>
-              <View style={styles.iconContainer}>
-                <Image source={Icons.logout} style={{ width: 24, height: 24, tintColor: colors.primary }} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Log Out</Text>
-                <View style={styles.separator} />
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => navigation.navigate('Login')}>
-              <View style={styles.iconContainer}>
-                <Image source={Icons.logout} style={{ width: 24, height: 24, tintColor: colors.primary }} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Log In / Sign Up</Text>
-                <View style={styles.separator} />
-              </View>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
+            )}
+          </View>
+          <Text style={styles.userName} numberOfLines={1}>
+            {profile?.name || (isAuthenticated ? 'Food Lover' : 'Guest User')}
+          </Text>
+          <Text style={styles.userSubtitle} numberOfLines={1}>
+            {isAuthenticated ? (profile?.email || 'Ready for good food.') : 'Sign in to explore exclusive perks'}
+          </Text>
+        </View>
       </View>
 
-      {/* Logout Modal */}
+      {/* Menu Body Sections */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Section: General */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionHeading}>General</Text>
+          {generalItems.map((item) => {
+            const isSelected = activeItemId === item.id;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.menuRow, isSelected && styles.menuRowActive]}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setActiveItemId(item.id);
+                  item.action();
+                }}
+              >
+                <Image
+                  source={item.icon}
+                  style={[styles.menuIcon, { tintColor: isSelected ? colors.primary : colors.text }]}
+                />
+                <Text
+                  style={[styles.menuTitle, { color: colors.text }, isSelected && styles.menuTitleActive]}
+                >
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Section: Profile & Preferences */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionHeading}>Profile</Text>
+          {profileItems.map((item) => {
+            const isSelected = activeItemId === item.id;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.menuRow, isSelected && styles.menuRowActive]}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setActiveItemId(item.id);
+                  item.action();
+                }}
+              >
+                <Image
+                  source={item.icon}
+                  style={[styles.menuIcon, { tintColor: isSelected ? colors.primary : colors.text }]}
+                />
+                <Text
+                  style={[styles.menuTitle, { color: colors.text }, isSelected && styles.menuTitleActive]}
+                >
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* System Update Menu Item */}
+          <TouchableOpacity
+            style={[styles.menuRow, activeItemId === 'update' && styles.menuRowActive]}
+            activeOpacity={0.75}
+            onPress={() => {
+              setActiveItemId('update');
+              handleSystemUpdatePress();
+              
+            }}
+          >
+            <Image
+              source={require('../../../assets/cloud.png')}
+              style={[
+                styles.menuIcon,
+                { tintColor: activeItemId === 'update' ? colors.primary : colors.text },
+              ]}
+            />
+            <Text
+              style={[
+                styles.menuTitle,
+                { color: colors.text },
+                activeItemId === 'update' && styles.menuTitleActive,
+              ]}
+            >
+              System Update
+            </Text>
+
+            {isCheckingUpdate ? (
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 8 }} />
+            ) : (
+              <View style={[styles.badgeContainer, updateAvailable && styles.badgeContainerHighlight]}>
+                <Text style={[styles.badgeText, updateAvailable && styles.badgeTextHighlight]}>
+                  {updateAvailable ? `v${latestVersion} Available!` : `v${CURRENT_VERSION}`}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Sign Out / Sign In Action Row */}
+        <View style={styles.menuSection}>
+          <TouchableOpacity
+            style={styles.signOutRow}
+            activeOpacity={0.75}
+            onPress={handleLogoutPress}
+          >
+            <Image source={Icons.logout} style={styles.signOutIcon} />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Logout Confirmation Modal */}
       <Modal
         visible={isLogoutModalVisible}
         transparent={true}
         animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => setLogoutModalVisible(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want{'\n'}to log out?</Text>
+            <Text style={styles.modalTitle}>Are you sure you want{'\n'}to sign out?</Text>
             <View style={styles.modalButtonsRow}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setLogoutModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalBtnCancel}
+                onPress={() => setLogoutModalVisible(false)}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmLogout}>
-                <Text style={styles.modalBtnConfirmText}>Yes, logout</Text>
+              <TouchableOpacity
+                style={styles.modalBtnConfirm}
+                onPress={confirmLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalBtnConfirmText}>Yes, sign out</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -323,30 +400,50 @@ export default function ProfileMenuScreen() {
         visible={isUpdateModalVisible}
         transparent={true}
         animationType="slide"
+        onRequestClose={() => {
+          setUpdateModalVisible(false);
+          setDownloadState('idle');
+        }}
       >
         <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              setUpdateModalVisible(false);
+              setDownloadState('idle');
+            }}
+          >
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
           <View style={styles.updateModalContent}>
             <View style={styles.updateModalHeader}>
               <Image source={require('../../../assets/cloud.png')} style={styles.updateModalIconImg} />
-              <Text style={styles.updateModalTitle}>Update Available</Text>
-              <Text style={styles.updateModalVersion}>v{CURRENT_VERSION} → v{latestVersion}</Text>
+              <Text style={styles.updateModalTitle}>
+                {updateAvailable ? 'Update Available' : 'App is Up to Date'}
+              </Text>
+              <Text style={styles.updateModalVersion}>
+                {updateAvailable
+                  ? `v${CURRENT_VERSION} → v${latestVersion}`
+                  : `QuickBite v${CURRENT_VERSION} (Latest)`}
+              </Text>
             </View>
 
-            {/* Release Notes */}
             {releaseNotes ? (
               <ScrollView style={styles.releaseNotesScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.releaseNotesLabel}>What's new</Text>
-                <Text style={styles.releaseNotesText}>{releaseNotes.slice(0, 400)}{releaseNotes.length > 400 ? '...' : ''}</Text>
+                <Text style={styles.releaseNotesLabel}>Release Information</Text>
+                <Text style={styles.releaseNotesText}>
+                  {releaseNotes.slice(0, 400)}
+                  {releaseNotes.length > 400 ? '...' : ''}
+                </Text>
               </ScrollView>
             ) : null}
 
-            {/* Progress Bar */}
             {downloadState === 'downloading' && (
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
                   <View style={[styles.progressFill, { width: `${downloadProgress}%` as any }]} />
                 </View>
-                <Text style={styles.progressLabel}>{downloadProgress}%  Downloading...</Text>
+                <Text style={styles.progressLabel}>{downloadProgress}% Downloading...</Text>
               </View>
             )}
 
@@ -355,15 +452,16 @@ export default function ProfileMenuScreen() {
                 <View style={styles.progressBar}>
                   <View style={[styles.progressFill, { width: '100%', backgroundColor: '#4CAF50' }]} />
                 </View>
-                <Text style={[styles.progressLabel, { color: '#4CAF50' }]}>✅  Download complete! Open your Downloads folder to install.</Text>
+                <Text style={[styles.progressLabel, { color: '#4CAF50' }]}>
+                  Download complete! Open your Downloads folder to install.
+                </Text>
               </View>
             )}
 
             {downloadState === 'error' && (
-              <Text style={styles.errorText}>❌ Download failed. Opening in browser instead...</Text>
+              <Text style={styles.errorText}>Direct download failed. Opening browser instead...</Text>
             )}
 
-            {/* Action Buttons */}
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
                 style={styles.modalBtnCancel}
@@ -372,21 +470,24 @@ export default function ProfileMenuScreen() {
                   setDownloadState('idle');
                   setDownloadProgress(0);
                 }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.modalBtnCancelText}>
-                  {downloadState === 'done' ? 'Close' : 'Later'}
+                  {updateAvailable ? 'Later' : 'Close'}
                 </Text>
               </TouchableOpacity>
 
-              {downloadState !== 'done' && (
+              {updateAvailable && downloadState !== 'done' && (
                 <TouchableOpacity
                   style={[styles.modalBtnConfirm, downloadState === 'downloading' && { opacity: 0.6 }]}
                   disabled={downloadState === 'downloading'}
                   onPress={handleDownloadUpdate}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.modalBtnConfirmText}>
-                    {downloadState === 'downloading' ? `${downloadProgress}% Downloading` :
-                      downloadState === 'error' ? 'Open Browser' : '⬇ Download APK'}
+                    {downloadState === 'downloading'
+                      ? `${downloadProgress}% Downloading`
+                      : 'Download APK'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -394,271 +495,339 @@ export default function ProfileMenuScreen() {
           </View>
         </View>
       </Modal>
-
-      <CustomAlert
-        visible={alertVisible}
-        title={alertTitle}
-        message={alertMessage}
-        onClose={() => setAlertVisible(false)}
-      />
+      </View>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FDD7C4', // Light peach/orange background from mockup
-    flexDirection: 'row', // Align left column and right container side-by-side
-  },
-  leftColumn: {
-    width: width * 0.15, // 15% width for the back button area
-    paddingTop: 40,
-    alignItems: 'center',
-  },
-  backButton: {
-    padding: 10,
-  },
-  backIconImg: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-    tintColor: colors.primary,
-  },
-  rightCurvedContainer: {
-    flex: 1, // Takes up the remaining 85% width
-    backgroundColor: colors.primary, // Solid orange background
-    borderTopLeftRadius: 50,
-    borderBottomLeftRadius: 50,
-    overflow: 'hidden',
-    paddingTop: 60, // Padding from top
-    paddingBottom: 20,
-  },
-  userInfoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    marginBottom: 40,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  avatarInitialsContainer: {
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitialsText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)', // Semi-transparent white
-  },
-  menuScrollContent: {
-    paddingHorizontal: 30,
-    paddingBottom: 60, // Space for the bottom decorator
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15, // Spacing between items
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  menuIcon: {
-    fontSize: 18,
-  },
-  menuIconImg: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-    tintColor: colors.primary,
-  },
-  menuTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    height: 40, // Match icon height for perfect alignment
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 10,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Thin white line
-    width: '100%',
-  },
-  updateModalContent: {
-    backgroundColor: '#fff',
-    width: '92%',
-    borderRadius: 24,
-    marginBottom: 40,
-    paddingTop: 28,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    maxHeight: '80%',
-  },
-  updateModalHeader: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  updateModalIconImg: {
-    width: 50,
-    height: 50,
-    resizeMode: 'contain',
-    tintColor: colors.primary,
-    marginBottom: 12,
-  },
-  updateModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111',
-    marginBottom: 4,
-  },
-  updateModalVersion: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  releaseNotesScroll: {
-    maxHeight: 120,
-    marginBottom: 16,
-  },
-  releaseNotesLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#555',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  releaseNotesText: {
-    fontSize: 13,
-    color: '#444',
-    lineHeight: 20,
-  },
-  progressContainer: {
-    marginBottom: 16,
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: 10,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-  },
-  progressLabel: {
-    fontSize: 12,
-    color: '#555',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    width: '90%',
-    padding: 30,
-    borderRadius: 20,
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  modalButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalBtnCancel: {
-    flex: 1,
-    backgroundColor: colors.inputBackground, // Light peach/yellow
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  modalBtnCancelText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  modalBtnConfirm: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginLeft: 10,
-    alignItems: 'center',
-  },
-  modalBtnConfirmText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  updateTextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 15,
-  },
-  versionValue: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontWeight: 'bold',
-  },
-  versionValueUpdate: {
-    color: '#FFE082',
-  },
-});
+const getStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    headerBanner: {
+      backgroundColor: colors.primary,
+      borderBottomLeftRadius: 42,
+      borderBottomRightRadius: 42,
+      paddingTop: Platform.OS === 'ios' ? 8 : 12,
+      paddingBottom: 26,
+      paddingHorizontal: 22,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 8,
+    },
+    topBarRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    brandLogo: {
+      width: 28,
+      height: 28,
+      borderRadius: 7,
+      marginRight: 8,
+      resizeMode: 'contain',
+    },
+    brandTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      letterSpacing: 0.4,
+    },
+    closeButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+    userProfileSection: {
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    avatarWrapper: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      borderWidth: 3,
+      borderColor: '#FFFFFF',
+      overflow: 'hidden',
+      marginBottom: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 5,
+    },
+    avatarImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    avatarPlaceholder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#FFFFFF',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarInitial: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.primary,
+    },
+    userName: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 3,
+    },
+    userSubtitle: {
+      fontSize: 13,
+      color: 'rgba(255, 255, 255, 0.85)',
+      fontWeight: '500',
+    },
+    scrollContent: {
+      paddingHorizontal: 22,
+      paddingTop: 24,
+      paddingBottom: 40,
+    },
+    menuSection: {
+      marginBottom: 22,
+    },
+    sectionHeading: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 10,
+      marginLeft: 4,
+    },
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: 22,
+      marginBottom: 6,
+    },
+    menuRowActive: {
+      backgroundColor: colors.surface,
+      borderWidth: 1.2,
+      borderColor: colors.border,
+    },
+    menuIcon: {
+      width: 20,
+      height: 20,
+      resizeMode: 'contain',
+      marginRight: 14,
+    },
+    menuTitle: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    menuTitleActive: {
+      fontWeight: '700',
+    },
+    badgeContainer: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 12,
+    },
+    badgeContainerHighlight: {
+      backgroundColor: '#FFF3E0',
+      borderColor: colors.primary,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    badgeTextHighlight: {
+      color: colors.primary,
+    },
+    signOutRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: 22,
+    },
+    signOutIcon: {
+      width: 20,
+      height: 20,
+      resizeMode: 'contain',
+      tintColor: '#FF5A5F',
+      marginRight: 14,
+    },
+    signOutText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FF5A5F',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      width: '90%',
+      padding: 26,
+      borderRadius: 24,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: 24,
+      lineHeight: 24,
+    },
+    modalButtonsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      gap: 12,
+    },
+    modalBtnCancel: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 12,
+      borderRadius: 25,
+      alignItems: 'center',
+    },
+    modalBtnCancelText: {
+      color: colors.text,
+      fontWeight: '700',
+      fontSize: 14,
+    },
+    modalBtnConfirm: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      borderRadius: 25,
+      alignItems: 'center',
+    },
+    modalBtnConfirmText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 14,
+    },
+    updateModalContent: {
+      backgroundColor: colors.surface,
+      width: '92%',
+      borderRadius: 24,
+      padding: 24,
+      maxHeight: '80%',
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    updateModalHeader: {
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    updateModalIconImg: {
+      width: 48,
+      height: 48,
+      resizeMode: 'contain',
+      tintColor: colors.primary,
+      marginBottom: 10,
+    },
+    updateModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    updateModalVersion: {
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: '700',
+      backgroundColor: '#FFF3E0',
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 20,
+      overflow: 'hidden',
+    },
+    releaseNotesScroll: {
+      maxHeight: 120,
+      marginBottom: 16,
+    },
+    releaseNotesLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textMuted,
+      marginBottom: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    releaseNotesText: {
+      fontSize: 13,
+      color: colors.text,
+      lineHeight: 20,
+    },
+    progressContainer: {
+      marginBottom: 16,
+    },
+    progressBar: {
+      height: 10,
+      backgroundColor: colors.border,
+      borderRadius: 10,
+      overflow: 'hidden',
+      marginBottom: 8,
+    },
+    progressFill: {
+      height: 10,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+    },
+    progressLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+    errorText: {
+      fontSize: 13,
+      color: '#FF5A5F',
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+  });

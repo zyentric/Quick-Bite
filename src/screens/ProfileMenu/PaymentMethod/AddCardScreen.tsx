@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
+import { CreditCardIcon } from '../../../components/icons';
 
 type AddCardNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddCard'>;
 
@@ -22,10 +24,15 @@ export default function AddCardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Image source={require('../../../assets/back.png')} style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: colors.primary }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Card</Text>
         <View style={styles.rightPlaceholder} />
@@ -56,7 +63,7 @@ export default function AddCardScreen() {
                 <Text style={styles.cardGraphicLabel}>Expiry Date</Text>
                 <Text style={styles.cardGraphicValue}>{expiry || 'MM/YY'}</Text>
               </View>
-              <Text style={styles.cardGraphicIcon}>💳</Text>
+              <CreditCardIcon size={24} color="#FFFFFF" />
             </View>
           </View>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -25,7 +26,8 @@ export default function SetPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       {/* Top Section */}
       <View style={styles.topSection}>
         <TouchableOpacity 
@@ -47,7 +49,7 @@ export default function SetPasswordScreen() {
       {/* Bottom Card Section */}
       <View style={styles.cardSection}>
         <Text style={styles.description}>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          Create a strong password for your account. Use at least 6 characters including letters and numbers.
         </Text>
 
         <View style={styles.formGroup}>
@@ -99,11 +101,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primaryBackground, 
   },
   topSection: {
-    height: height * 0.15,
+    height: 56,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    justifyContent: 'center',
   },
   backButton: {
+    position: 'absolute',
+    left: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -115,11 +119,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginTop: -30, 
   },
   cardSection: {
     flex: 1,

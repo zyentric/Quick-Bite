@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -13,7 +14,8 @@ export default function HelpScreen() {
   const styles = getStyles(colors);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F7D055' }]} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7D055" />
       <View style={styles.container}>
         {/* Yellow Header */}
         <View style={styles.headerSection}>
@@ -31,7 +33,7 @@ export default function HelpScreen() {
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             
             <Text style={styles.description}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent pellentesque congue lorem, vel tincidunt tortor.
+              We're here to help. Browse the topics below or contact our support team directly for any questions about your orders, account, or the app.
             </Text>
 
             <TouchableOpacity 
