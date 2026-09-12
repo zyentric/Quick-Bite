@@ -41,9 +41,13 @@ import FavoritesScreen from '../screens/Home/FavoritesScreen'; // trigger TS rel
 import HelpScreen from '../screens/Help/HelpScreen';
 import SupportScreen from '../screens/Help/SupportScreen';
 import HelpCenterScreen from '../screens/Help/HelpCenterScreen'; // Forced reload
+import ShopkeeperDashboardScreen from '../screens/Shopkeeper/ShopkeeperDashboardScreen';
+import DeliveryDashboardScreen from '../screens/Home/DeliveryDashboardScreen';
+import ShopkeeperOrderDetailsScreen from '../screens/Shopkeeper/ShopkeeperOrderDetailsScreen';
 import { useCart } from '../context/CartContext';
 import { useThemeColors } from '../theme/colors';
 import Icons from '../constants/icons';
+import CustomBottomTabBar from '../components/navigation/CustomBottomTabBar';
 import { RootStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator();
@@ -66,57 +70,18 @@ function HomeStack() {
 const DummyScreen = () => <View style={{flex: 1, backgroundColor: '#fff'}} />;
 
 function MainTabs() {
-  const { totalItems } = useCart();
-  const colors = useThemeColors();
-  
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomBottomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false, // Hide labels as per mockup
-        tabBarActiveTintColor: '#FFFFFF', // White icon when active
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.6)', // Translucent white when inactive
-        tabBarStyle: {
-          backgroundColor: colors.primary, // Orange background
-          borderTopWidth: 0,
-          borderTopLeftRadius: 25, // Mockup has rounded top corners
-          borderTopRightRadius: 25,
-          position: 'absolute', // To allow rounded corners to show nicely over content
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          height: 65,
-          paddingBottom: 10,
-        },
       }}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeStack} 
-        options={{ tabBarIcon: ({ color }) => <Image source={Icons.home} style={{ width: 20, height: 20, tintColor: color }} /> }}
-      />
-      <Tab.Screen 
-        name="FoodMenu" 
-        component={FoodMenuScreen} 
-        options={{ tabBarIcon: ({ color }) => <Image source={Icons.spoons} style={{ width: 20, height: 20, tintColor: color }} /> }}
-      />
-      <Tab.Screen 
-        name="Favorites" 
-        component={FavoritesScreen} 
-        options={{ tabBarIcon: ({ color }) => <Image source={Icons.favorite} style={{ width: 20, height: 20, tintColor: color }} /> }}
-      />
-      <Tab.Screen 
-        name="Orders"
-        component={MyOrdersScreen}
-        options={{ tabBarIcon: ({ color }) => <Image source={Icons.list} style={{ width: 20, height: 20, tintColor: color }} /> }}
-      />
-      <Tab.Screen 
-        name="Help" 
-        component={HelpScreen} 
-        options={{ tabBarIcon: ({ color }) => <Image source={Icons.support} style={{ width: 20, height: 20, tintColor: color }} /> }}
-      />
+      <Tab.Screen name="Home" component={HomeStack} />
+      <Tab.Screen name="Favorites" component={FavoritesScreen} />
+      <Tab.Screen name="FoodMenu" component={FoodMenuScreen} />
+      <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen name="Orders" component={MyOrdersScreen} />
     </Tab.Navigator>
   );
 }
@@ -175,6 +140,13 @@ export default function AppNavigator() {
             headerStyle: { backgroundColor: colors.background }
           }} 
         />
+        
+        {/* Shopkeeper Screens */}
+        <Stack.Screen name="ShopkeeperDashboard" component={ShopkeeperDashboardScreen} />
+        <Stack.Screen name="ShopkeeperOrderDetails" component={ShopkeeperOrderDetailsScreen} />
+
+        {/* Delivery Man Screens */}
+        <Stack.Screen name="DeliveryDashboard" component={DeliveryDashboardScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useUser } from '../../context/UserContext';
+import Icons from '../../constants/icons';
 
 type LaunchScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Launch'>;
 
@@ -12,7 +14,7 @@ export default function LaunchScreen() {
   const navigation = useNavigation<LaunchScreenNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { isAuthenticated, checkingAuth } = useUser();
+  const { isAuthenticated, checkingAuth, role } = useUser();
 
   // Track whether the minimum splash duration has elapsed
   const [minSplashDone, setMinSplashDone] = useState(false);
@@ -35,36 +37,30 @@ export default function LaunchScreen() {
       return;
     }
     hasNavigated.current = true;
-
     if (isAuthenticated) {
-      // Valid active session → go straight to the dashboard
-      navigation.replace('MainTabs');
+      if (role === 'shopkeeper') {
+        navigation.replace('ShopkeeperDashboard');
+      } else if (role === 'delivery_man') {
+        navigation.replace('DeliveryDashboard');
+      } else {
+        navigation.replace('MainTabs');
+      }
     } else {
-      // No valid session → go to welcome / auth flow
       navigation.replace('Welcome');
     }
-  }, [minSplashDone, checkingAuth, isAuthenticated, navigation]);
+  }, [minSplashDone, checkingAuth, isAuthenticated, role, navigation]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Decorative premium gold background shapes */}
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor="#1C132B" />
+      {/* Decorative background shapes */}
       <View style={styles.circleDecorator1} />
       <View style={styles.circleDecorator2} />
 
       <View style={styles.content}>
-        {/* Premium Gold Logo Outline */}
-        <View style={styles.logoOutline}>
-          <View style={styles.logoInner}>
-            <Text style={styles.logoIcon}>🍔</Text>
-          </View>
+        <View style={styles.logoContainer}>
+          <Image source={Icons.logo} style={styles.logoImage} />
         </View>
-        
-        {/* DIGGY Branding Typography */}
-        <View style={styles.brandContainer}>
-          <Text style={styles.brandTextPrimary}>DI</Text>
-          <Text style={styles.brandTextSecondary}>GGY</Text>
-        </View>
-        
         <Text style={styles.tagline}>Fresh meals delivered in snaps</Text>
       </View>
     </SafeAreaView>
@@ -72,79 +68,57 @@ export default function LaunchScreen() {
 }
 
 
-const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1E1B18', // Deep Charcoal
-  },
-  circleDecorator1: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255, 199, 44, 0.05)', // Translucent Gold
-  },
-  circleDecorator2: {
-    position: 'absolute',
-    bottom: -150,
-    left: -150,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: 'rgba(232, 93, 34, 0.03)', // Translucent Orange
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  logoOutline: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 2,
-    borderColor: '#FFC72C', // Gold
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-    padding: 6,
-  },
-  logoInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 60,
-    backgroundColor: '#E85D22', // Brand Orange
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoIcon: {
-    fontSize: 45,
-  },
-  brandContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  brandTextPrimary: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#FFC72C', // Gold
-    letterSpacing: 2,
-  },
-  brandTextSecondary: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#FFFFFF', // White
-    letterSpacing: 2,
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#A0A0A0',
-    marginTop: 10,
-    fontWeight: '500',
-    letterSpacing: 1,
-  },
-});
-
+const getStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#1C132B', // Deep brand theme
+    },
+    circleDecorator1: {
+      position: 'absolute',
+      top: -100,
+      right: -100,
+      width: 300,
+      height: 300,
+      borderRadius: 150,
+      backgroundColor: 'rgba(232, 93, 34, 0.1)',
+    },
+    circleDecorator2: {
+      position: 'absolute',
+      bottom: -150,
+      left: -150,
+      width: 400,
+      height: 400,
+      borderRadius: 200,
+      backgroundColor: 'rgba(247, 198, 83, 0.08)',
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 40,
+    },
+    logoContainer: {
+      width: 160,
+      height: 160,
+      borderRadius: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      borderWidth: 1.5,
+      borderColor: 'rgba(255, 255, 255, 0)',
+    },
+    logoImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'contain',
+    },
+    tagline: {
+      fontSize: 15,
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginTop: 10,
+      fontWeight: '600',
+      letterSpacing: 0.4,
+    },
+  });

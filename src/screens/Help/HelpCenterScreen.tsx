@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, UIManager, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, UIManager, Platform, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -16,11 +17,11 @@ type HelpCenterScreenNavigationProp = NativeStackNavigationProp<RootStackParamLi
 const FAQ_CATEGORIES = ['General', 'Account', 'Services'];
 
 const FAQ_DATA = [
-  { id: '1', question: 'Lorem ipsum dolor sit amet?', answer: 'Praesent pellentesque congue lorem, vel tincidunt tortor placerat a. Proin ac diam quam. Aenean in sagittis magna, ut feugiat diam.' },
-  { id: '2', question: 'Lorem ipsum dolor sit amet?', answer: 'Detailed answer goes here.' },
-  { id: '3', question: 'Lorem ipsum dolor sit amet?', answer: 'Detailed answer goes here.' },
-  { id: '4', question: 'Lorem ipsum dolor sit amet?', answer: 'Detailed answer goes here.' },
-  { id: '5', question: 'Lorem ipsum dolor sit amet?', answer: 'Detailed answer goes here.' },
+  { id: '1', question: 'How do I place an order?', answer: 'Browse restaurants or menu items, tap the "+" button to add items to your cart, then go to Cart → Checkout. Choose your delivery address and payment method, and confirm your order.' },
+  { id: '2', question: 'Can I cancel my order?', answer: 'Yes, you can cancel an order from the "My Orders" screen as long as it has not been accepted by the restaurant. Once accepted, cancellations may not be possible.' },
+  { id: '3', question: 'What payment methods are accepted?', answer: 'We accept Cash on Delivery (COD) and online card payments via Razorpay. More methods will be added soon.' },
+  { id: '4', question: 'How do I track my order?', answer: 'After placing your order, tap "Track my order" on the Order Confirmed screen or tap "Track Driver" on the My Orders screen to see real-time delivery progress on a map.' },
+  { id: '5', question: 'How do I change my delivery address?', answer: 'Go to Profile → Delivery Address to add or manage your saved addresses. You can also select a different address at the time of checkout.' },
 ];
 
 const CONTACT_METHODS = [
@@ -52,7 +53,8 @@ export default function HelpCenterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#F7D055" />
       <View style={styles.container}>
         {/* Yellow Header */}
         <View style={styles.headerSection}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -26,11 +27,16 @@ export default function FingerprintScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       {/* Top Section */}
       <View style={styles.topSection}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Image source={require('../../assets/back.png')} style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: colors.primary }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Set Your Fingerprint</Text>
       </View>
@@ -38,7 +44,7 @@ export default function FingerprintScreen() {
       {/* Bottom Card Section */}
       <View style={styles.cardSection}>
         <Text style={styles.description}>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          Add fingerprint authentication for faster and more secure login. Your biometric data never leaves your device.
         </Text>
 
         <TouchableOpacity 
@@ -72,14 +78,17 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primaryBackground, 
   },
   topSection: {
-    height: height * 0.15,
+    height: 56,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    justifyContent: 'center',
   },
   backButton: {
+    position: 'absolute',
+    left: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
+    zIndex: 10,
   },
   backButtonText: {
     fontSize: 24,
@@ -87,11 +96,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginTop: -30, 
   },
   cardSection: {
     flex: 1,

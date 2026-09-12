@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
@@ -18,7 +19,8 @@ export default function CancelSuccessScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.primaryBackground} />
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -31,10 +33,9 @@ export default function CancelSuccessScreen() {
 
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          {/* Using a placeholder for the large orange circle with dot */}
-          <Text style={styles.iconPlaceholder}>🔘</Text> 
+          <View style={styles.innerDot} />
         </View>
-        <Text style={styles.title}>¡Order Cancelled!</Text>
+        <Text style={styles.title}>Order Cancelled!</Text>
         <Text style={styles.subtitle}>Your order has been successfully{'\n'}cancelled</Text>
       </View>
 
@@ -78,9 +79,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  iconPlaceholder: {
-    fontSize: 40,
-    color: colors.primary,
+  innerDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
   },
   title: {
     fontSize: 28,

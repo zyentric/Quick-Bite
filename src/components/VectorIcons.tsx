@@ -1,29 +1,89 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
+import Icons from '../constants/icons';
 
-export function EyeIcon({ color = '#666', size = 20 }) {
+export function EyeIcon({ color = '#E85D22', size = 22 }: { color?: string; size?: number }) {
   const width = size;
-  const height = size * 0.65;
-  const pupilSize = size * 0.35;
+  const height = size * 0.62;
+  const irisSize = size * 0.42;
+  const pupilSize = size * 0.22;
 
   return (
-    <View style={[styles.eyeContainer, { width, height, borderColor: color, borderRadius: size * 0.5 }]}>
-      <View style={[styles.pupil, { width: pupilSize, height: pupilSize, borderRadius: pupilSize * 0.5, backgroundColor: color }]} />
+    <View style={[styles.eyeFrame, { width, height, borderColor: color }]}>
+      <View style={[styles.eyeIris, { width: irisSize, height: irisSize, borderColor: color }]}>
+        <View style={[styles.eyePupil, { width: pupilSize, height: pupilSize, backgroundColor: color }]} />
+      </View>
     </View>
   );
 }
 
-export function EyeOffIcon({ color = '#666', size = 20 }) {
+export function EyeOffIcon({ color = '#E85D22', size = 22 }: { color?: string; size?: number }) {
   const width = size;
-  const height = size * 0.65;
-  const pupilSize = size * 0.35;
+  const height = size * 0.62;
+  const irisSize = size * 0.42;
+  const pupilSize = size * 0.22;
 
   return (
-    <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
-      <View style={[styles.eyeContainer, { width, height, borderColor: color, borderRadius: size * 0.5, opacity: 0.6 }]}>
-        <View style={[styles.pupil, { width: pupilSize, height: pupilSize, borderRadius: pupilSize * 0.5, backgroundColor: color }]} />
+    <View style={{ width, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={[styles.eyeFrame, { width, height, borderColor: color, opacity: 0.55 }]}>
+        <View style={[styles.eyeIris, { width: irisSize, height: irisSize, borderColor: color }]}>
+          <View style={[styles.eyePupil, { width: pupilSize, height: pupilSize, backgroundColor: color }]} />
+        </View>
       </View>
-      <View style={[styles.diagonalLine, { width: size * 1.2, backgroundColor: color }]} />
+      <View
+        style={[
+          styles.slashLine,
+          { width: size * 1.25, backgroundColor: color },
+        ]}
+      />
+    </View>
+  );
+}
+
+export function MailIcon({ color = '#999', size = 18 }: { color?: string; size?: number }) {
+  return (
+    <View style={[styles.mailContainer, { width: size, height: size * 0.75, borderColor: color }]}>
+      <View style={[styles.mailFlapLeft, { borderColor: color, width: size * 0.52, height: size * 0.38 }]} />
+      <View style={[styles.mailFlapRight, { borderColor: color, width: size * 0.52, height: size * 0.38 }]} />
+    </View>
+  );
+}
+
+export function LockIcon({ color = '#999', size = 18 }: { color?: string; size?: number }) {
+  const bodyHeight = size * 0.6;
+  const shackleWidth = size * 0.56;
+  const shackleHeight = size * 0.48;
+
+  return (
+    <View style={{ width: size, height: size * 1.05, alignItems: 'center' }}>
+      {/* Shackle Loop */}
+      <View
+        style={[
+          styles.lockShackle,
+          {
+            width: shackleWidth,
+            height: shackleHeight,
+            borderColor: color,
+            borderTopLeftRadius: shackleWidth / 2,
+            borderTopRightRadius: shackleWidth / 2,
+          },
+        ]}
+      />
+      {/* Lock Body */}
+      <View
+        style={[
+          styles.lockBody,
+          {
+            width: size,
+            height: bodyHeight,
+            borderColor: color,
+            backgroundColor: 'transparent',
+          },
+        ]}
+      >
+        <View style={[styles.keyholeDot, { backgroundColor: color }]} />
+        <View style={[styles.keyholeLine, { backgroundColor: color }]} />
+      </View>
     </View>
   );
 }
@@ -43,23 +103,21 @@ export function FingerprintIcon({ color = '#F2B824', size = 80 }) {
   );
 }
 
-export function GoogleIcon({ size = 20 }) {
+export function GoogleIcon({ size = 20 }: { size?: number }) {
   return (
-    <View style={[styles.socialLogoContainer, { width: size, height: size, borderColor: '#EA4335' }]}>
-      <View style={[styles.googleSegment, { borderColor: '#4285F4', borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: size / 2, width: size, height: size }]} />
-      <View style={[styles.googleSegment, { borderColor: '#34A853', borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: size / 2, width: size, height: size, position: 'absolute' }]} />
-      <View style={[styles.googleSegment, { borderColor: '#FBBC05', borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: size / 2, width: size, height: size, position: 'absolute' }]} />
-    </View>
+    <Image
+      source={Icons.google}
+      style={{ width: size, height: size, resizeMode: 'contain' }}
+    />
   );
 }
 
-export function FacebookIcon({ size = 20 }) {
+export function FacebookIcon({ size = 20 }: { size?: number }) {
   return (
-    <View style={[styles.facebookContainer, { width: size, height: size, borderRadius: size / 2 }]}>
-      <View style={[styles.facebookFHorizontal, { width: size * 0.4, height: size * 0.15, top: size * 0.35, left: size * 0.25 }]} />
-      <View style={[styles.facebookFVertical, { width: size * 0.15, height: size * 0.7, top: size * 0.15, left: size * 0.5 }]} />
-      <View style={[styles.facebookFVertical, { width: size * 0.35, height: size * 0.15, borderTopWidth: size * 0.15, borderTopRightRadius: size * 0.2, top: size * 0.15, left: size * 0.3, borderRightWidth: size * 0.15, borderColor: '#fff' }]} />
-    </View>
+    <Image
+      source={Icons.facebook}
+      style={{ width: size, height: size, resizeMode: 'contain' }}
+    />
   );
 }
 
@@ -77,6 +135,72 @@ export function AppleIcon({ size = 20, color = '#000' }) {
 }
 
 const styles = StyleSheet.create({
+  eyeFrame: {
+    borderWidth: 1.8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeIris: {
+    borderWidth: 1.5,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyePupil: {
+    borderRadius: 6,
+  },
+  slashLine: {
+    height: 2,
+    position: 'absolute',
+    borderRadius: 1,
+    transform: [{ rotate: '-45deg' }],
+  },
+  mailContainer: {
+    borderWidth: 1.6,
+    borderRadius: 4,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  mailFlapLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    borderTopWidth: 1.4,
+    borderRightWidth: 1.4,
+    transform: [{ rotate: '35deg' }],
+  },
+  mailFlapRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    borderTopWidth: 1.4,
+    borderLeftWidth: 1.4,
+    transform: [{ rotate: '-35deg' }],
+  },
+  lockShackle: {
+    borderWidth: 1.8,
+    borderBottomWidth: 0,
+    marginBottom: -1,
+  },
+  lockBody: {
+    borderWidth: 1.8,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyholeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 1,
+  },
+  keyholeLine: {
+    width: 2,
+    height: 4,
+    borderRadius: 1,
+  },
   eyeContainer: {
     borderWidth: 2,
     justifyContent: 'center',

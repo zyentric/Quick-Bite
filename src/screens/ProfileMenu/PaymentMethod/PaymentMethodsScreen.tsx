@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
+import { LockIcon } from '../../../components/icons';
 
 type PaymentMethodsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PaymentMethods'>;
 
@@ -25,7 +27,8 @@ export default function PaymentMethodsScreen() {
   const [tempUpiId, setTempUpiId] = useState('');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
@@ -37,7 +40,9 @@ export default function PaymentMethodsScreen() {
       <View style={styles.contentContainer}>
         {!isAuthenticated ? (
           <View style={styles.guestContainer}>
-            <Text style={styles.guestIcon}>🔒</Text>
+            <View style={{ marginBottom: 20 }}>
+              <LockIcon size={64} color={colors.primary} />
+            </View>
             <Text style={styles.guestText}>Please log in to manage payment methods.</Text>
             <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
               <Text style={styles.loginButtonText}>Log In</Text>

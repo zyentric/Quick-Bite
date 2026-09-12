@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { EyeIcon, EyeOffIcon } from '../../../components/VectorIcons';
+import { authFetch } from '../../../utils/authFetch';
+import { API_URL } from '../../../config/api';
+import CustomAlert from '../../../components/CustomAlert';
 
 type PasswordSettingNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PasswordSetting'>;
 
@@ -13,30 +17,78 @@ export default function PasswordSettingScreen() {
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
-  const [currentPassword, setCurrentPassword] = useState('**************');
-  const [newPassword, setNewPassword] = useState('**************');
-  const [confirmPassword, setConfirmPassword] = useState('**************');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChangePassword = () => {
-    navigation.goBack();
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      showAlert('Required Fields', 'Please fill in all password fields.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showAlert('Weak Password', 'New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showAlert('Mismatch', 'New password and confirmation do not match.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await authFetch(`${API_URL}/users/change-password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert('Error', data.message || 'Failed to change password.');
+        return;
+      }
+      showAlert('Success', 'Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      showAlert('Network Error', e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => {
+          setAlertVisible(false);
+          if (alertTitle === 'Success') navigation.goBack();
+        }}
+      />
+
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Welcome');
-            }
-          }}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Settings')}
         >
           <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
@@ -46,33 +98,36 @@ export default function PasswordSettingScreen() {
 
       <View style={styles.contentContainer}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
+
           <View style={styles.formGroup}>
             <Text style={styles.label}>Current Password</Text>
             <View style={styles.inputContainer}>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
+                placeholder="Enter current password"
+                placeholderTextColor={colors.textMuted}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 secureTextEntry={!showCurrent}
+                autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeIconContainer}>
                 {showCurrent ? <EyeIcon color={colors.primary} size={20} /> : <EyeOffIcon color={colors.primary} size={20} />}
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>New Password</Text>
             <View style={styles.inputContainer}>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
+                placeholder="Enter new password (min 6 chars)"
+                placeholderTextColor={colors.textMuted}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 secureTextEntry={!showNew}
+                autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowNew(!showNew)} style={styles.eyeIconContainer}>
                 {showNew ? <EyeIcon color={colors.primary} size={20} /> : <EyeOffIcon color={colors.primary} size={20} />}
@@ -83,11 +138,14 @@ export default function PasswordSettingScreen() {
           <View style={styles.formGroup}>
             <Text style={styles.label}>Confirm New Password</Text>
             <View style={styles.inputContainer}>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
+                placeholder="Re-enter new password"
+                placeholderTextColor={colors.textMuted}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirm}
+                autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeIconContainer}>
                 {showConfirm ? <EyeIcon color={colors.primary} size={20} /> : <EyeOffIcon color={colors.primary} size={20} />}
@@ -96,8 +154,11 @@ export default function PasswordSettingScreen() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.changeBtn} onPress={handleChangePassword}>
-              <Text style={styles.changeBtnText}>Change Password</Text>
+            <TouchableOpacity style={[styles.changeBtn, loading && { opacity: 0.6 }]} onPress={handleChangePassword} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.changeBtnText}>Change Password</Text>
+              }
             </TouchableOpacity>
           </View>
 
@@ -136,7 +197,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: '#FFFFFF',
   },
   rightPlaceholder: {
-    width: 40, 
+    width: 40,
   },
   contentContainer: {
     flex: 1,
@@ -148,7 +209,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 30,
-    paddingBottom: 80, 
+    paddingBottom: 80,
   },
   formGroup: {
     marginBottom: 25,
@@ -162,7 +223,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.inputBackground, // Light yellow
+    backgroundColor: colors.inputBackground,
     borderRadius: 15,
   },
   textInput: {
@@ -176,19 +237,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   eyeIconContainer: {
     paddingHorizontal: 15,
   },
-  eyeIcon: {
-    color: colors.primary,
-    fontSize: 18,
-  },
-  forgotPasswordContainer: {
-    alignItems: 'flex-end',
-    marginTop: 10,
-  },
-  forgotPasswordText: {
-    color: colors.primary, // Orange
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
   buttonContainer: {
     alignItems: 'center',
     marginTop: 30,
@@ -197,7 +245,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 25,
     paddingVertical: 15,
-    paddingHorizontal: 40,
+    paddingHorizontal: 60,
     alignItems: 'center',
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -207,7 +255,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   changeBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
-  }
+  },
 });

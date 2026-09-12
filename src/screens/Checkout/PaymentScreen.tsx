@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import RazorpayCheckout from 'react-native-razorpay';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -43,6 +44,7 @@ export default function PaymentScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   
   const [isAddressModalVisible, setAddressModalVisible] = useState(false);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
@@ -57,11 +59,14 @@ export default function PaymentScreen() {
     ? `${selectedAddress.addressLine1}, ${selectedAddress.city}`
     : 'No address selected. Please add one.';
     
-  // Restaurant coordinates: [37.7944, -122.2912]
-  const destLat = selectedAddress?.location?.lat || 37.8044;
-  const destLng = selectedAddress?.location?.lng || -122.2712;
-  const distanceKm = getDistance(37.7944, -122.2912, destLat, destLng);
-  
+  // Restaurant coordinates — Mumbai default. In production, fetch from the restaurant's record.
+  const RESTAURANT_LAT = 19.0760;
+  const RESTAURANT_LNG = 72.8777;
+
+  // Use the saved address lat/lng if available, otherwise default near restaurant
+  const destLat = selectedAddress?.latitude  || 19.1136;
+  const destLng = selectedAddress?.longitude || 72.8697;
+  const distanceKm = getDistance(RESTAURANT_LAT, RESTAURANT_LNG, destLat, destLng);
   const estimatedDeliveryTime = Math.max(15, Math.ceil(15 + distanceKm * 5));
 
   const showAlert = (title: string, message: string) => {
@@ -96,10 +101,10 @@ export default function PaymentScreen() {
           items: itemsPayload,
           totalAmount: finalTotal,
           deliveryAddress: selectedAddress || {
-            addressLine1: '778 Locust View Drive Oaklanda, CA',
-            city: 'Oakland',
-            state: 'CA',
-            zipCode: '94612',
+            addressLine1: 'Sector 5, Andheri East',
+            city: 'Mumbai',
+            state: 'Maharashtra',
+            zipCode: '400069',
           },
           paymentMethod: paymentMethod,
         }),
@@ -112,10 +117,21 @@ export default function PaymentScreen() {
       }
 
       const dbOrderId = resData.id || resData._id;
+      setPlacedOrderId(dbOrderId);
 
       if (paymentMethod === 'cod') {
+        // Mark the order as Placed for COD — it was created as PendingPayment
+        const codRes = await authFetch(`${API_URL}/orders/${dbOrderId}/confirm-cod`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!codRes.ok) {
+          const codErr = await codRes.json();
+          showAlert('Order Error', codErr.message || 'Could not confirm your COD order.');
+          return;
+        }
         clearCart();
-        navigation.navigate('OrderConfirmed');
+        navigation.navigate('OrderConfirmed', { orderId: dbOrderId, destLat, destLng, addressLabel: addressDisplayString });
         return;
       }
 
@@ -165,7 +181,7 @@ export default function PaymentScreen() {
         const verifyData = await verifyRes.json();
         if (verifyRes.ok && verifyData.success) {
           clearCart();
-          navigation.navigate('OrderConfirmed');
+          navigation.navigate('OrderConfirmed', { orderId: dbOrderId, destLat, destLng, addressLabel: addressDisplayString });
         } else {
           showAlert('Payment Failed', verifyData.message || 'Signature verification failed.');
         }
@@ -173,8 +189,6 @@ export default function PaymentScreen() {
         showAlert('Payment Cancelled', `Payment was not completed. ${error.description || ''}`);
       });
 
-
-      // clearCart and navigation handled in Razorpay success callback
     } catch (e: any) {
       showAlert('Network Issue', e.message);
     } finally {
@@ -183,7 +197,8 @@ export default function PaymentScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#F7D055" />
       {/* Reusable Custom Loader */}
       <CustomLoader visible={loading} message="Placing Order..." />
 
@@ -248,11 +263,7 @@ export default function PaymentScreen() {
           </View>
           <View style={styles.paymentBox}>
             <View style={styles.cardInfo}>
-              {paymentMethod === 'card' ? (
-                <Image source={require('../../assets/card.png')} style={styles.cardIconImg} />
-              ) : paymentMethod === 'upi' ? null : (
-                <Text style={styles.cardIcon}>💵</Text>
-              )}
+              <Image source={require('../../assets/card.png')} style={styles.cardIconImg} />
               <Text style={styles.cardType}>
                 {paymentMethod === 'card' ? 'Credit Card' : paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery'}
               </Text>
@@ -549,14 +560,19 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   payNowBtn: {
-    backgroundColor: colors.inputBackground, // Light peach button
+    backgroundColor: colors.primary,
     paddingVertical: 15,
-    paddingHorizontal: 50,
+    paddingHorizontal: 60,
     borderRadius: 25,
-    marginBottom: 20, // Space between btn and tabs
+    marginBottom: 20,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   payNowBtnText: {
-    color: colors.primary,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

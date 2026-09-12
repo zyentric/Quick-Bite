@@ -11,9 +11,24 @@ export interface UserProfile {
   name?: string;
   email?: string;
   phone?: string;
+  dob?: string;
   profilePicture?: string;
   savedAddresses?: any[];
   role?: string;
+  vehicleType?: string;
+  vehicleNumber?: string;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  documents?: {
+    drivingLicense?: string;
+    vehicleRC?: string;
+    identityProof?: string;
+  };
+  bankDetails?: {
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+  };
+  isOnline?: boolean;
 }
 
 interface UserContextType {
@@ -88,7 +103,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ── App startup: restore session ──────────────────────────────────────────
+  // ── App startup: restore persistent session ─────────────────────────────
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -96,24 +111,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const storedRole = await AsyncStorage.getItem('userRole');
         const storedToken = await AsyncStorage.getItem('userToken');
 
-        // Need all three pieces to restore a session
-        if (!storedToken || !storedUserId || !storedRole) {
-          return; // Stay logged out
-        }
+        // Restore session immediately if local tokens and credentials exist
+        if (storedToken && storedUserId && storedRole) {
+          setRoleState(storedRole as UserRole);
+          setUserIdState(storedUserId);
+          setIsAuthenticatedState(true);
 
-        // Validate the stored access token by attempting a silent refresh.
-        // This ensures the session is genuinely valid, not just present in storage.
-        const refreshed = await silentRefresh();
-        if (!refreshed) {
-          // Both access and refresh tokens are invalid/expired — force logout
-          await logout();
-          return;
+          // Attempt a non-blocking background refresh to obtain a fresh access token
+          silentRefresh().catch(() => {
+            // Background refresh failed (offline or transient error) — retain existing session
+          });
         }
-
-        // Session is valid — restore state
-        setRoleState(storedRole as UserRole);
-        setUserIdState(storedUserId);
-        setIsAuthenticatedState(true);
       } catch (error) {
         console.error('Failed to load session:', error);
       } finally {

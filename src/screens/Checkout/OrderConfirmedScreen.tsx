@@ -1,161 +1,128 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 
 type OrderConfirmedNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrderConfirmed'>;
+type OrderConfirmedRouteProp = RouteProp<RootStackParamList, 'OrderConfirmed'>;
 
 export default function OrderConfirmedScreen() {
   const navigation = useNavigation<OrderConfirmedNavigationProp>();
+  const route = useRoute<OrderConfirmedRouteProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
-        </TouchableOpacity>
-        <View style={styles.rightPlaceholder} />
-      </View>
+  const { orderId, destLat, destLng, addressLabel } = route.params || {};
 
+  const goHome = () => {
+    navigation.dispatch(
+      CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] })
+    );
+  };
+
+  const goToOrders = () => {
+    navigation.dispatch(
+      CommonActions.reset({ index: 0, routes: [{ name: 'MainTabs' }] })
+    );
+    setTimeout(() => navigation.navigate('MyOrders'), 100);
+  };
+
+  const trackOrder = () => {
+    navigation.navigate('DeliveryTime', { orderId, destLat, destLng, addressLabel });
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7D055" />
       <View style={styles.contentContainer}>
-        {/* Animated Circle / Success Graphic Placeholder */}
+        {/* Success Graphic */}
         <View style={styles.successGraphic}>
           <View style={styles.graphicInnerCircle}>
-            <View style={styles.graphicDot} />
+            <Text style={styles.successEmoji}>✓</Text>
           </View>
         </View>
 
-        <Text style={styles.titleText}>Order Confirmed! 🎉</Text>
-        <Text style={styles.subtitleText}>Your order has been placed{'\n'}successfully</Text>
-        
-        <Text style={styles.deliveryText}>Delivery by Thu, 29th, 4:00 PM</Text>
-        
-        <TouchableOpacity onPress={() => navigation.navigate('DeliveryTime')}>
-          <Text style={styles.trackOrderLink}>Track my order</Text>
+        <Text style={styles.titleText}>Order Confirmed!</Text>
+        <Text style={styles.subtitleText}>
+          Your order has been placed{'\n'}successfully. We're preparing it now!
+        </Text>
+
+        <TouchableOpacity onPress={trackOrder} style={styles.trackButton} activeOpacity={0.8}>
+          <Text style={styles.trackButtonText}>Track My Order</Text>
         </TouchableOpacity>
       </View>
-      
-      {/* Footer Text & Bottom Tabs */}
-      <View style={styles.bottomSection}>
-        <Text style={styles.supportText}>If you have any questions, please reach out{'\n'}directly to our customer support</Text>
-      </View>
 
+      {/* Footer CTAs */}
+      <View style={styles.bottomSection}>
+        <Text style={styles.supportText}>
+          If you have any questions, please reach out{'\n'}directly to our customer support.
+        </Text>
+
+        <View style={styles.ctaRow}>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={goToOrders} activeOpacity={0.8}>
+            <Text style={styles.secondaryBtnText}>My Orders</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.primaryBtn} onPress={goHome} activeOpacity={0.8}>
+            <Text style={styles.primaryBtnText}>Back to Home</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7D055', // Yellow background
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  backButton: {
-    padding: 10,
-  },
-  backIconImg: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-    tintColor: colors.primary,
-  },
-  rightPlaceholder: {
-    width: 40,
-  },
+  container: { flex: 1, backgroundColor: '#F7D055' },
   contentContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 60,
+    flex: 1, alignItems: 'center', paddingTop: 80, paddingHorizontal: 30,
   },
   successGraphic: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: colors.primary, // Orange ring
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
+    width: 130, height: 130, borderRadius: 65,
+    borderWidth: 4, borderColor: colors.primary,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 40, backgroundColor: 'rgba(255,255,255,0.3)',
   },
   graphicInnerCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: colors.inputBackground, // Light peach inner circle
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    padding: 15,
-  },
-  graphicDot: {
-    width: 15,
-    height: 15,
-    borderRadius: 7.5,
+    width: 96, height: 96, borderRadius: 48,
     backgroundColor: colors.primary,
+    justifyContent: 'center', alignItems: 'center',
   },
+  successEmoji: { fontSize: 44, color: '#fff', fontWeight: '900' },
   titleText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 10,
+    fontSize: 30, fontWeight: 'bold', color: colors.text,
+    marginBottom: 14, textAlign: 'center',
   },
   subtitleText: {
-    fontSize: 14,
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 20,
+    fontSize: 15, color: colors.text, textAlign: 'center',
+    marginBottom: 36, lineHeight: 22, opacity: 0.8,
   },
-  deliveryText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-    marginBottom: 20,
+  trackButton: {
+    backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 14,
+    borderRadius: 25, shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3,
+    shadowRadius: 8, elevation: 5,
   },
-  trackOrderLink: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
-  },
-  bottomSection: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    alignItems: 'center',
-  },
+  trackButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  bottomSection: { paddingHorizontal: 24, paddingBottom: 30, alignItems: 'center' },
   supportText: {
-    fontSize: 12,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-    paddingHorizontal: 40,
+    fontSize: 13, color: colors.textMuted, textAlign: 'center',
+    lineHeight: 18, marginBottom: 20,
   },
-  bottomTabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.primary,
-    width: '100%',
-    paddingVertical: 20,
-    paddingHorizontal: 30,
-    justifyContent: 'space-between',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+  ctaRow: { flexDirection: 'row', gap: 14, width: '100%' },
+  secondaryBtn: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 25,
+    paddingVertical: 14, alignItems: 'center',
+    borderWidth: 2, borderColor: colors.primary,
   },
-  tabBtn: {
-    padding: 5,
+  secondaryBtnText: { color: colors.primary, fontSize: 15, fontWeight: 'bold' },
+  primaryBtn: {
+    flex: 1, backgroundColor: colors.primary, borderRadius: 25,
+    paddingVertical: 14, alignItems: 'center',
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
   },
-  tabIcon: {
-    fontSize: 20,
-    color: '#fff',
-  }
+  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
 });

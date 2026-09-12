@@ -50,13 +50,13 @@ export type RootStackParamList = {
   Cart: undefined;
   Checkout: undefined;
   Payment: undefined;
-  OrderConfirmed: undefined;
-  DeliveryTime: undefined;
+  OrderConfirmed: { orderId?: string; destLat?: number; destLng?: number; addressLabel?: string };
+  DeliveryTime: { orderId?: string; destLat?: number; destLng?: number; addressLabel?: string };
   Filter: undefined;
   MyOrders: undefined;
   CancelOrder: { orderId: string };
   CancelSuccess: undefined;
-  LeaveReview: undefined;
+  LeaveReview: { orderId?: string; orderName?: string; orderImage?: string };
   RestaurantDetails: { restaurant: Restaurant };
   FoodMenu: undefined;
   FoodDetails: { item: MenuItem };
@@ -66,4 +66,11 @@ export type RootStackParamList = {
   Help: undefined;
   Support: undefined;
   HelpCenter: undefined;
+
+  // Shopkeeper Specific
+  ShopkeeperDashboard: undefined;
+  ShopkeeperOrderDetails: { orderId: string };
+
+  // Delivery Man Specific
+  DeliveryDashboard: undefined;
 };

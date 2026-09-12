@@ -2,7 +2,11 @@
 // Usage: import Icons from '../constants/icons'; 
 //   then: <Image source={Icons.home} style={{ width: 24, height: 24 }} />
 
-const Icons = {
+export const Icons = {
+  // Brand Logo & App Icon
+  logo: require('../assets/logo.png'),
+  appIcon: require('../assets/app_icon.png'),
+
   // Navigation / Tab Bar
   home: require('../assets/home.png'),
   spoons: require('../assets/spoons.png'),       // Food Menu tab

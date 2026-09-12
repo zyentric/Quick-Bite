@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
@@ -60,16 +61,19 @@ export default function CheckoutScreen() {
     : 'No address selected. Please add one.';
   const taxAndFees = cartItems.length > 0 ? 5.00 : 0;
 
-  // Restaurant coordinates: [37.7944, -122.2912]
-  // Customer coordinates: [37.8044, -122.2712]
+  // Restaurant coordinates — Mumbai default. In production, fetch from the restaurant's record.
+  const RESTAURANT_LAT = 19.0760;
+  const RESTAURANT_LNG = 72.8777;
+
   const deliveryFee = cartItems.length > 0
-    ? calculateDeliveryFee(37.7944, -122.2912, 37.8044, -122.2712)
+    ? calculateDeliveryFee(RESTAURANT_LAT, RESTAURANT_LNG, 19.1136, 72.8697)
     : 0;
 
   const finalTotal = totalPrice + taxAndFees + deliveryFee;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#F7D055" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
@@ -423,13 +427,18 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   placeOrderBtn: {
-    backgroundColor: colors.inputBackground, // Light peach button
+    backgroundColor: colors.primary,
     paddingVertical: 15,
-    paddingHorizontal: 40,
+    paddingHorizontal: 50,
     borderRadius: 25,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   placeOrderBtnText: {
-    color: colors.primary,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

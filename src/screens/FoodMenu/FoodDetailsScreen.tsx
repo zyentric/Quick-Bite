@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
 import { useUser } from '../../context/UserContext';
+import { addRecentlyViewedItem } from '../../utils/recentItems';
 
 type FoodDetailsRouteProp = RouteProp<RootStackParamList, 'FoodDetails'>;
 type FoodDetailsNavigationProp = NativeStackNavigationProp<RootStackParamList, 'FoodDetails'>;
@@ -22,6 +24,12 @@ export default function FoodDetailsScreen() {
   const { isAuthenticated } = useUser();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (item) {
+      addRecentlyViewedItem(item);
+    }
+  }, [item]);
 
   const handleToggleAddOn = (id: string) => {
     setSelectedAddOns(prev => ({
@@ -49,7 +57,8 @@ export default function FoodDetailsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7D055" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Platform, PermissionsAndroid, Image, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Geolocation from '@react-native-community/geolocation';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,7 +8,9 @@ import { WebView } from 'react-native-webview';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
+import { authFetch } from '../../../utils/authFetch';
 import { API_URL } from '../../../config/api';
+import { HomeBuildingIcon, WorkBuildingIcon, LocationPinIcon } from '../../../components/icons';
 import CustomLoader from '../../../components/CustomLoader';
 import CustomAlert from '../../../components/CustomAlert';
 
@@ -367,7 +370,8 @@ export default function AddNewAddressScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
       <CustomLoader visible={loading} message="Processing..." />
       <CustomAlert 
         visible={alertVisible}
@@ -378,7 +382,7 @@ export default function AddNewAddressScreen() {
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Address</Text>
         <View style={styles.rightPlaceholder} />
@@ -388,14 +392,21 @@ export default function AddNewAddressScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
           <View style={styles.iconContainer}>
-            <Text style={styles.largeIcon}>
-              {label === 'Home' ? '🏠' : label === 'Work' || label === 'Office' ? '💼' : '📍'}
-            </Text>
+            {label === 'Home' ? (
+              <HomeBuildingIcon size={44} color={colors.primary} />
+            ) : label === 'Work' || label === 'Office' ? (
+              <WorkBuildingIcon size={44} color={colors.primary} />
+            ) : (
+              <LocationPinIcon size={44} color={colors.primary} />
+            )}
           </View>
 
           {/* Location Fetching Button */}
           <TouchableOpacity style={styles.locationFetchBtn} onPress={fetchCurrentLocation}>
-            <Text style={styles.locationFetchText}>📍 Fetch Current Location</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <LocationPinIcon size={16} color="#FFFFFF" />
+              <Text style={styles.locationFetchText}> Fetch Current Location</Text>
+            </View>
           </TouchableOpacity>
 
           {/* Interactive Leaflet Map for Precise Pin Adjustment */}
@@ -420,7 +431,7 @@ export default function AddNewAddressScreen() {
                   }
                 }}
               />
-              <Text style={styles.mapHintText}>📍 Drag the red pin or tap the map to adjust your location</Text>
+              <Text style={styles.mapHintText}>Drag the red pin or tap the map to adjust your location</Text>
             </View>
           )}
 
@@ -532,10 +543,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: {
     padding: 10,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: 'bold',
+  backIconImg: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    tintColor: colors.primary,
   },
   headerTitle: {
     fontSize: 24,

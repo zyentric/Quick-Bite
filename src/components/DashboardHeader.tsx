@@ -64,7 +64,10 @@ export default function DashboardHeader({ searchQuery, setSearchQuery }: Dashboa
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => navigation.getParent()?.navigate('ProfileMenu')}
+              onPress={() => {
+                const rootNav = navigation.getParent()?.getParent() || navigation.getParent() || navigation;
+                rootNav.navigate('ProfileMenu');
+              }}
             >
               <Image source={Icons.user} style={[styles.iconImg, { tintColor: colors.primary }]} />
             </TouchableOpacity>
