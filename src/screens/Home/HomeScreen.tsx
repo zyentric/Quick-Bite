@@ -37,6 +37,8 @@ import {
   HomeRecentlyViewed,
   HomeTrustBadges,
 } from '../../components/home';
+import AppFooter from '../../components/common/AppFooter';
+import HomeScreenSkeleton from '../../components/skeleton/HomeScreenSkeleton';
 
 // Fallback Categories
 const DEFAULT_CATEGORIES = [
@@ -233,6 +235,26 @@ export default function HomeScreen() {
     return <DeliveryDashboardScreen />;
   }
 
+  // Show skeleton on initial load
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F7D055" />
+        {/* Keep the yellow header visible while skeleton loads */}
+        <View style={styles.headerSection}>
+          <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <View style={styles.greetingWrapper}>
+            <Text style={styles.greetingTitle}>{greetingTitle}</Text>
+            <Text style={styles.greetingSub}>{greetingSub}</Text>
+          </View>
+        </View>
+        <View style={[styles.contentSection, { flex: 1 }]}>
+          <HomeScreenSkeleton />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F7D055" />
@@ -336,6 +358,9 @@ export default function HomeScreen() {
 
           {/* 12. Trust & Safety Badges */}
           <HomeTrustBadges />
+
+          {/* 13. App Footer & Copyright */}
+          <AppFooter bottomSpacing={10} />
 
           <View style={{ height: 110 }} />
         </View>

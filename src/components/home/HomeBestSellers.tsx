@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import FoodCard from './FoodCard';
+import { FoodCardSkeleton } from '../skeleton/HomeScreenSkeleton';
 
 export interface HomeBestSellersProps {
   items: MenuItem[];
@@ -35,7 +36,9 @@ export default function HomeBestSellers({
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} size="small" style={{ marginVertical: 20 }} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
+          {[0, 1, 2, 3].map((i) => <FoodCardSkeleton key={i} width={155} />)}
+        </ScrollView>
       ) : items.length === 0 ? (
         <Text style={styles.empty}>No best seller items found.</Text>
       ) : (

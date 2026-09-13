@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import {
   RestaurantIcon,
@@ -11,11 +11,15 @@ import {
   CheckCircleIcon,
   DeliveryBikeIcon,
 } from '../icons/DeliveryIcons';
+import { VegIcon, NonVegIcon } from '../icons/ShopkeeperIcons';
 
 export interface OrderFoodItem {
   name: string;
   quantity: number;
   price?: number;
+  image?: string;
+  category?: string;
+  isVeg?: boolean;
 }
 
 export interface DeliveryOrder {
@@ -35,15 +39,19 @@ export interface DeliveryOrder {
   updatedAt?: string;
 }
 
+import { ChatBubbleIcon } from '../icons';
+
 interface DeliveryCardProps {
   item: DeliveryOrder;
   isAvailableTab: boolean;
   isActiveTab: boolean;
   isHistoryTab: boolean;
+  onPress?: (order: DeliveryOrder) => void;
   onClaimPress: (orderId: string) => void;
   onDeliveredPress: (order: DeliveryOrder) => void;
   onCallPress: (phone?: string) => void;
   onNavigatePress: (address: string) => void;
+  onChatPress?: (order: DeliveryOrder) => void;
 }
 
 export default function DeliveryCard({
@@ -51,10 +59,12 @@ export default function DeliveryCard({
   isAvailableTab,
   isActiveTab,
   isHistoryTab,
+  onPress,
   onClaimPress,
   onDeliveredPress,
   onCallPress,
   onNavigatePress,
+  onChatPress,
 }: DeliveryCardProps) {
   const colors = useThemeColors();
   const styles = getStyles(colors);
@@ -81,7 +91,11 @@ export default function DeliveryCard({
   const badge = getStatusBadge(item.status);
 
   return (
-    <View style={styles.cardContainer}>
+    <TouchableOpacity
+      style={styles.cardContainer}
+      activeOpacity={0.92}
+      onPress={() => onPress && onPress(item)}
+    >
       {/* Top Header: Order ID & Live Status Badge */}
       <View style={styles.cardHeader}>
         <View>
@@ -148,8 +162,8 @@ export default function DeliveryCard({
         activeOpacity={0.7}
       >
         <Text style={styles.itemsToggleText}>
-          {item.items.length} Food Item{item.items.length > 1 ? 's' : ''} to Verify{' '}
-          {isExpanded ? '▲' : '▼'}
+          {item.items.length} Food Item{item.items.length > 1 ? 's' : ''}{' '}
+          {isExpanded ? '(Hide Details)' : '(Verify Items)'}
         </Text>
       </TouchableOpacity>
 
@@ -157,8 +171,28 @@ export default function DeliveryCard({
         <View style={styles.itemsListContainer}>
           {item.items.map((food, idx) => (
             <View key={idx} style={styles.itemRow}>
+              {food.image ? (
+                <Image source={{ uri: food.image }} style={styles.foodThumb} />
+              ) : (
+                <View style={styles.foodThumbPlaceholder}>
+                  <RestaurantIcon size={14} color={colors.textMuted} />
+                </View>
+              )}
+              <View style={styles.vegIconContainer}>
+                {food.isVeg !== false ? <VegIcon size={12} /> : <NonVegIcon size={12} />}
+              </View>
+              <View style={styles.foodDetails}>
+                <Text style={styles.itemName} numberOfLines={1}>
+                  {food.name}
+                </Text>
+                {food.category ? (
+                  <Text style={styles.itemCategory}>{food.category}</Text>
+                ) : null}
+              </View>
               <Text style={styles.itemQuantity}>{food.quantity}x</Text>
-              <Text style={styles.itemName}>{food.name}</Text>
+              {food.price ? (
+                <Text style={styles.itemPrice}>₹{food.price * food.quantity}</Text>
+              ) : null}
             </View>
           ))}
         </View>
@@ -187,6 +221,18 @@ export default function DeliveryCard({
           <MapNavigationIcon size={15} color="#3B82F6" />
           <Text style={styles.quickActionBtnText}>Maps</Text>
         </TouchableOpacity>
+
+        {/* Quick Chat Button */}
+        {onChatPress ? (
+          <TouchableOpacity
+            style={styles.quickActionBtn}
+            onPress={() => onChatPress(item)}
+            activeOpacity={0.8}
+          >
+            <ChatBubbleIcon size={14} color="#3B82F6" />
+            <Text style={styles.quickActionBtnText}>Chat</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Primary State Transition Button */}
         {isAvailableTab && (
@@ -218,7 +264,7 @@ export default function DeliveryCard({
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -347,18 +393,52 @@ const getStyles = (colors: ThemeColors) =>
     itemRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginVertical: 3,
+      marginVertical: 4,
+      paddingVertical: 2,
     },
-    itemQuantity: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.primary,
-      width: 28,
+    foodThumb: {
+      width: 38,
+      height: 38,
+      borderRadius: 8,
+      backgroundColor: colors.inputBackground,
+      marginRight: 8,
+    },
+    foodThumbPlaceholder: {
+      width: 38,
+      height: 38,
+      borderRadius: 8,
+      backgroundColor: colors.inputBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 8,
+    },
+    vegIconContainer: {
+      marginRight: 6,
+    },
+    foodDetails: {
+      flex: 1,
+      paddingRight: 6,
     },
     itemName: {
       fontSize: 13,
+      fontWeight: '600',
       color: colors.text,
-      flex: 1,
+    },
+    itemCategory: {
+      fontSize: 10.5,
+      color: colors.textMuted,
+      marginTop: 1,
+    },
+    itemQuantity: {
+      fontSize: 12.5,
+      fontWeight: '800',
+      color: colors.primary,
+      marginRight: 6,
+    },
+    itemPrice: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.text,
     },
     cardActionsBar: {
       flexDirection: 'row',

@@ -19,6 +19,8 @@ import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { API_URL } from '../../config/api';
 import { authFetch } from '../../utils/authFetch';
 import { useUser } from '../../context/UserContext';
+import { useToast } from '../../context/ToastContext';
+import { wsService } from '../../services/WebSocketService';
 import CustomLoader from '../../components/CustomLoader';
 import CustomAlert from '../../components/CustomAlert';
 import {
@@ -35,8 +37,9 @@ import {
 export default function DeliveryDashboardScreen() {
   const navigation = useNavigation<any>();
   const colors = useThemeColors();
-  const { logout, userProfile, userId, refreshUserProfile } = useUser();
   const styles = getStyles(colors);
+  const { userProfile, userId, logout, refreshUserProfile } = useUser();
+  const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<DeliveryTabType>('active');
   const [deliveries, setDeliveries] = useState<DeliveryOrder[]>([]);
@@ -88,6 +91,12 @@ export default function DeliveryDashboardScreen() {
           name: item.menuItem?.name || item.name || 'Food Item',
           quantity: item.quantity || 1,
           price: item.menuItem?.price || item.price || 0,
+          image: item.menuItem?.image || item.image,
+          category: item.menuItem?.category || item.category,
+          isVeg:
+            item.menuItem?.category?.toLowerCase() !== 'non-veg' &&
+            item.menuItem?.category?.toLowerCase() !== 'chicken' &&
+            item.menuItem?.category?.toLowerCase() !== 'meat',
         })),
         isAssignedToMe: o.deliveryMan === userId || o.deliveryMan?._id === userId || o.status === 'OutForDelivery',
         createdAt: o.createdAt,
@@ -129,6 +138,12 @@ export default function DeliveryDashboardScreen() {
             name: item.menuItem?.name || item.name || 'Food Item',
             quantity: item.quantity || 1,
             price: item.menuItem?.price || item.price || 0,
+            image: item.menuItem?.image || item.image,
+            category: item.menuItem?.category || item.category,
+            isVeg:
+              item.menuItem?.category?.toLowerCase() !== 'non-veg' &&
+              item.menuItem?.category?.toLowerCase() !== 'chicken' &&
+              item.menuItem?.category?.toLowerCase() !== 'meat',
           })),
           isAssignedToMe: true,
           createdAt: o.createdAt,
@@ -155,6 +170,16 @@ export default function DeliveryDashboardScreen() {
 
   useEffect(() => {
     loadAllData();
+  }, []);
+
+  // WebSocket Live Updates subscription
+  useEffect(() => {
+    const unsubscribe = wsService.subscribe((event) => {
+      console.log('[DeliveryDashboardScreen] Live event:', event.type);
+      fetchDeliveries();
+      fetchHistory();
+    });
+    return unsubscribe;
   }, []);
 
   // Exit app on hardware back press when on Delivery Dashboard root
@@ -200,6 +225,11 @@ export default function DeliveryDashboardScreen() {
         return;
       }
       showAlert('Delivery Claimed', 'Order assigned to your route. Proceed to restaurant for pickup.');
+      showToast({
+        type: 'order',
+        title: 'Delivery Claimed',
+        message: `Order #${orderId.slice(-6).toUpperCase()} added to your active deliveries.`,
+      });
       setActiveTab('active');
       fetchDeliveries();
     } catch (e: any) {
@@ -215,8 +245,8 @@ export default function DeliveryDashboardScreen() {
     setDeliverConfirmModalVisible(true);
   };
 
-  // Confirm Mark Delivered
-  const confirmMarkDelivered = async () => {
+  // Confirm Mark Delivered with PIN
+  const confirmMarkDelivered = async (enteredPin: string) => {
     if (!selectedOrderForDelivery) return;
     setDeliverConfirmModalVisible(false);
     setLoading(true);
@@ -224,17 +254,22 @@ export default function DeliveryDashboardScreen() {
       const response = await authFetch(`${API_URL}/orders/${selectedOrderForDelivery.id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Delivered' }),
+        body: JSON.stringify({ status: 'Delivered', deliveryPin: enteredPin }),
       });
       const data = await response.json();
       if (!response.ok) {
-        showAlert('Error', data.message || 'Failed to update order to Delivered');
+        showAlert('Delivery Failed', data.message || 'Incorrect PIN or delivery could not be completed');
         return;
       }
       showAlert(
         'Delivery Completed',
-        `Order #${selectedOrderForDelivery.id.slice(-6).toUpperCase()} has been marked as delivered.`
+        `Order #${selectedOrderForDelivery.id.slice(-6).toUpperCase()} has been successfully verified & delivered.`
       );
+      showToast({
+        type: 'success',
+        title: 'Delivery Completed',
+        message: `Order #${selectedOrderForDelivery.id.slice(-6).toUpperCase()} delivered successfully!`,
+      });
       setSelectedOrderForDelivery(null);
       await Promise.all([fetchDeliveries(), fetchHistory()]);
       setActiveTab('history');
@@ -284,6 +319,22 @@ export default function DeliveryDashboardScreen() {
         : `geo:0,0?q=${encodedAddress}`;
     Linking.openURL(url).catch(() => {
       Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`);
+    });
+  };
+
+  const handleCardPress = (order: DeliveryOrder) => {
+    navigation.navigate('DeliveryOrderDetails', {
+      orderId: order.id,
+      initialOrder: order,
+    });
+  };
+
+  const handleChatPress = (order: DeliveryOrder) => {
+    navigation.navigate('Chat', {
+      orderId: order.id,
+      orderNumber: order.id.slice(-6).toUpperCase(),
+      recipientName: order.customerName,
+      recipientRole: 'customer',
     });
   };
 
@@ -368,10 +419,12 @@ export default function DeliveryDashboardScreen() {
             isAvailableTab={activeTab === 'available'}
             isActiveTab={activeTab === 'active'}
             isHistoryTab={activeTab === 'history'}
+            onPress={handleCardPress}
             onClaimPress={handleClaimDelivery}
             onDeliveredPress={handleMarkDeliveredPress}
             onCallPress={handleCallCustomer}
             onNavigatePress={handleOpenMaps}
+            onChatPress={handleChatPress}
           />
         )}
         keyExtractor={(item) => item.id}

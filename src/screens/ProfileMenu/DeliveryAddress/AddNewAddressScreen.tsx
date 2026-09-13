@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Platform, PermissionsAndroid, Image, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Geolocation from '@react-native-community/geolocation';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
 import { RootStackParamList } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
+import { useToast } from '../../../context/ToastContext';
 import { authFetch } from '../../../utils/authFetch';
 import { API_URL } from '../../../config/api';
 import { HomeBuildingIcon, WorkBuildingIcon, LocationPinIcon } from '../../../components/icons';
@@ -15,12 +16,47 @@ import CustomLoader from '../../../components/CustomLoader';
 import CustomAlert from '../../../components/CustomAlert';
 
 type AddNewAddressNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddNewAddress'>;
+type AddNewAddressRouteProp = RouteProp<RootStackParamList, 'AddNewAddress'>;
 
-const parseAddressFromNominatim = (data: any) => {
+interface NominatimAddress {
+  road?: string;
+  suburb?: string;
+  neighbourhood?: string;
+  residential?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  county?: string;
+  state_district?: string;
+  state?: string;
+  country?: string;
+  postcode?: string;
+}
+
+interface NominatimResponse {
+  address?: NominatimAddress;
+  display_name?: string;
+}
+
+interface BigDataCloudAdmin {
+  name: string;
+}
+
+interface BigDataCloudResponse {
+  city?: string;
+  locality?: string;
+  principalSubdivision?: string;
+  countryName?: string;
+  localityInfo?: {
+    administrative?: BigDataCloudAdmin[];
+  };
+}
+
+const parseAddressFromNominatim = (data: NominatimResponse) => {
   const addr = data.address || {};
   const displayName = data.display_name || '';
   
-  const cityVal = addr.city || addr.town || addr.village || addr.county || '';
+  const cityVal = addr.city || addr.town || addr.village || addr.county || addr.state_district || '';
   const zipCodeVal = addr.postcode || '';
   const stateVal = addr.state || '';
   const countryVal = addr.country || '';
@@ -39,7 +75,7 @@ const parseAddressFromNominatim = (data: any) => {
     return !filterOut.has(lp) && !/^\d{5,6}$/.test(lp);
   });
   
-  const addressLine1Val = streetParts.slice(0, Math.min(3, streetParts.length)).join(', ') || addr.road || addr.suburb || 'Detected Location';
+  const addressLine1Val = streetParts.slice(0, Math.min(3, streetParts.length)).join(', ') || addr.road || addr.suburb || addr.neighbourhood || addr.residential || (cityVal ? `${cityVal} Main Area` : '');
   const addressLine2Val = streetParts.slice(3).join(', ') || [stateVal, countryVal].filter(Boolean).join(', ') || '';
 
   return {
@@ -50,15 +86,15 @@ const parseAddressFromNominatim = (data: any) => {
   };
 };
 
-const parseAddressFromBigDataCloud = (data: any) => {
+const parseAddressFromBigDataCloud = (data: BigDataCloudResponse) => {
   const cityVal = data.city || data.locality || '';
   const stateVal = data.principalSubdivision || '';
   const countryVal = data.countryName || '';
   
   const adminList = data.localityInfo?.administrative || [];
-  const parts = adminList.map((item: any) => item.name);
+  const parts = adminList.map((item: BigDataCloudAdmin) => item.name);
   
-  const addressLine1Val = [data.locality, ...parts.slice(0, Math.max(0, parts.length - 2))].filter(Boolean).join(', ') || 'Detected Location';
+  const addressLine1Val = [data.locality, ...parts.slice(0, Math.max(0, parts.length - 2))].filter(Boolean).join(', ') || data.locality || (cityVal ? `${cityVal} Area` : '');
   const addressLine2Val = [stateVal, countryVal].filter(Boolean).join(', ');
   
   return {
@@ -110,18 +146,32 @@ const getMapHtml = (lat: number, lng: number) => `
 
 export default function AddNewAddressScreen() {
   const navigation = useNavigation<AddNewAddressNavigationProp>();
+  const route = useRoute<AddNewAddressRouteProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userId } = useUser();
+  const { userId, refreshUserProfile } = useUser();
+  const { showToast } = useToast();
 
-  const [label, setLabel] = useState<'Home' | 'Work' | 'Office' | 'Other'>('Home');
-  const [customLabel, setCustomLabel] = useState('');
-  const [addressLine1, setAddressLine1] = useState('');
-  const [addressLine2, setAddressLine2] = useState('');
-  const [city, setCity] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
+  const addressToEdit = route.params?.addressToEdit;
+  const isEditMode = !!addressToEdit;
+
+  const initialIsPreset = ['Home', 'Work', 'Office'].includes(addressToEdit?.label || '');
+  const [label, setLabel] = useState<'Home' | 'Work' | 'Office' | 'Other'>(
+    initialIsPreset ? (addressToEdit?.label as any) : addressToEdit?.label ? 'Other' : 'Home'
+  );
+  const [customLabel, setCustomLabel] = useState(
+    !initialIsPreset && addressToEdit?.label ? addressToEdit.label : ''
+  );
+  const [addressLine1, setAddressLine1] = useState(addressToEdit?.addressLine1 || '');
+  const [addressLine2, setAddressLine2] = useState(addressToEdit?.addressLine2 || '');
+  const [city, setCity] = useState(addressToEdit?.city || '');
+  const [zipCode, setZipCode] = useState(addressToEdit?.zipCode || '');
+  const [latitude, setLatitude] = useState<number | null>(
+    addressToEdit?.latitude || addressToEdit?.lat || null
+  );
+  const [longitude, setLongitude] = useState<number | null>(
+    addressToEdit?.longitude || addressToEdit?.lng || null
+  );
 
   const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -261,7 +311,8 @@ export default function AddNewAddressScreen() {
       const res = await fetch('https://freeipapi.com/api/json', { headers: userAgentHeader });
       if (res.ok) {
         const data = await res.json();
-        setAddressLine1('Detected Location (IP)');
+        const areaName = [data.cityName, data.regionName].filter(Boolean).join(', ');
+        setAddressLine1(areaName ? `${areaName} Main Street` : '');
         setCity(data.cityName || '');
         setZipCode(data.zipCode || '');
         setAddressLine2(data.regionName || '');
@@ -280,7 +331,8 @@ export default function AddNewAddressScreen() {
         const res = await fetch('https://ipapi.co/json/', { headers: userAgentHeader });
         if (res.ok) {
           const data = await res.json();
-          setAddressLine1(data.org ? `Near ${data.org}` : 'Detected Location (IP)');
+          const areaName = [data.city, data.region].filter(Boolean).join(', ');
+          setAddressLine1(areaName ? `${areaName} Sector` : '');
           setCity(data.city || '');
           setZipCode(data.postal || '');
           setAddressLine2(data.region || '');
@@ -300,7 +352,8 @@ export default function AddNewAddressScreen() {
         const res = await fetch('https://ipinfo.io/json', { headers: userAgentHeader });
         if (res.ok) {
           const data = await res.json();
-          setAddressLine1(data.org ? `Near ${data.org}` : 'Detected Location (IP)');
+          const areaName = [data.city, data.region].filter(Boolean).join(', ');
+          setAddressLine1(areaName ? `${areaName} Area` : '');
           setCity(data.city || '');
           setZipCode(data.postal || '');
           setAddressLine2(data.region || '');
@@ -339,11 +392,15 @@ export default function AddNewAddressScreen() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/users/addresses`, {
-        method: 'POST',
+      const url = isEditMode
+        ? `${API_URL}/users/addresses/${addressToEdit._id || addressToEdit.id || addressToEdit.label}`
+        : `${API_URL}/users/addresses`;
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const res = await authFetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
-          'user-id': userId,
         },
         body: JSON.stringify({
           label: finalLabel,
@@ -352,11 +409,19 @@ export default function AddNewAddressScreen() {
           city,
           zipCode,
           latitude,
-          longitude
-        })
+          longitude,
+        }),
       });
 
       if (res.ok) {
+        await refreshUserProfile();
+        showToast({
+          type: 'success',
+          title: isEditMode ? 'Address Updated' : 'Address Saved',
+          message: isEditMode
+            ? `"${finalLabel}" address was updated successfully.`
+            : `"${finalLabel}" address added to your profile.`,
+        });
         navigation.goBack();
       } else {
         const errData = await res.json();
@@ -384,7 +449,7 @@ export default function AddNewAddressScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require('../../../assets/back.png')} style={styles.backIconImg} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add New Address</Text>
+        <Text style={styles.headerTitle}>{isEditMode ? 'Edit Address' : 'Add New Address'}</Text>
         <View style={styles.rightPlaceholder} />
       </View>
 
@@ -517,7 +582,7 @@ export default function AddNewAddressScreen() {
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
-              <Text style={styles.applyBtnText}>Save Address</Text>
+              <Text style={styles.applyBtnText}>{isEditMode ? 'Update Address' : 'Save Address'}</Text>
             </TouchableOpacity>
           </View>
 

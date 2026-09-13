@@ -23,6 +23,7 @@ import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
 import Icons from '../../../constants/icons';
 import { APP_VERSION, APP_CONFIG } from '../../../constants/appConfig';
+import AppFooter from '../../../components/common/AppFooter';
 
 const CURRENT_VERSION = APP_VERSION;
 
@@ -359,6 +360,9 @@ export default function ProfileMenuScreen() {
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
+
+        {/* App Footer & Copyright */}
+        <AppFooter bottomSpacing={20} />
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
@@ -829,5 +833,21 @@ const getStyles = (colors: ThemeColors) =>
       color: '#FF5A5F',
       textAlign: 'center',
       marginBottom: 16,
+    },
+    versionContainer: {
+      alignItems: 'center',
+      marginTop: 20,
+      marginBottom: 30,
+    },
+    versionText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textMuted,
+      marginBottom: 2,
+    },
+    versionSubText: {
+      fontSize: 10,
+      color: colors.textMuted,
+      opacity: 0.7,
     },
   });

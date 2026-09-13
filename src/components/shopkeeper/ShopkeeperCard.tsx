@@ -1,13 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
-import { CookingPanIcon, OrderBellIcon } from '../icons/ShopkeeperIcons';
+import { CookingPanIcon, OrderBellIcon, VegIcon, NonVegIcon } from '../icons/ShopkeeperIcons';
 import { DeliveryBikeIcon, CheckCircleIcon, WarningTriangleIcon } from '../icons/DeliveryIcons';
 
 export interface ShopkeeperOrderItem {
   name: string;
   quantity: number;
   price: number;
+  isVeg?: boolean;
+  image?: string;
+  category?: string;
 }
 
 export interface ShopkeeperOrder {
@@ -106,10 +109,21 @@ export default function ShopkeeperCard({
       <View style={styles.itemsBox}>
         {order.items.slice(0, 3).map((item, idx) => (
           <View key={idx} style={styles.itemRow}>
-            <Text style={styles.itemQuantity}>{item.quantity}x</Text>
-            <Text style={styles.itemName} numberOfLines={1}>
-              {item.name}
-            </Text>
+            {item.image ? (
+              <Image
+                source={{ uri: item.image }}
+                style={styles.itemThumbMini}
+              />
+            ) : null}
+            <View style={styles.itemLeftGroup}>
+              {item.isVeg !== undefined && (
+                item.isVeg ? <VegIcon size={13} /> : <NonVegIcon size={13} />
+              )}
+              <Text style={styles.itemQuantity}>{item.quantity}x</Text>
+              <Text style={styles.itemName} numberOfLines={1}>
+                {item.name}
+              </Text>
+            </View>
             <Text style={styles.itemPrice}>₹{(item.price * item.quantity).toFixed(0)}</Text>
           </View>
         ))}
@@ -121,11 +135,12 @@ export default function ShopkeeperCard({
       </View>
 
       {/* Delivery Hero Info if Assigned */}
-      {order.deliveryManName && (order.status === 'ReadyForPickup' || order.status === 'OutForDelivery') && (
+      {order.deliveryManName && (
         <View style={styles.driverRow}>
           <DeliveryBikeIcon size={16} color="#7C3AED" />
           <Text style={styles.driverText}>
-            Assigned Hero: <Text style={{ fontWeight: '800' }}>{order.deliveryManName}</Text>
+            Hero: <Text style={{ fontWeight: '800' }}>{order.deliveryManName}</Text>
+            {order.deliveryManPhone ? ` (${order.deliveryManPhone})` : ''}
           </Text>
         </View>
       )}
@@ -264,18 +279,32 @@ const getStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'space-between',
     },
+    itemThumbMini: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    itemLeftGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 8,
+      gap: 6,
+    },
     itemQuantity: {
       fontSize: 12,
       fontWeight: '800',
       color: colors.primary,
-      width: 24,
     },
     itemName: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.text,
       flex: 1,
-      marginRight: 8,
     },
     itemPrice: {
       fontSize: 12,

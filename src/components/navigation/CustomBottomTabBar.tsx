@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
@@ -31,7 +32,7 @@ const TAB_CONFIGS: Record<string, TabConfig> = {
   },
   Favorites: {
     name: 'Favorites',
-    label: 'Saved',
+    label: 'Favorite',
     icon: Icons.favorite,
   },
   FoodMenu: {
@@ -47,8 +48,8 @@ const TAB_CONFIGS: Record<string, TabConfig> = {
   },
   Orders: {
     name: 'Orders',
-    label: 'Order',
-    icon: Icons.cart,
+    label: 'Orders',
+    icon: Icons.order,
   },
 };
 
@@ -61,6 +62,19 @@ export function CustomBottomTabBar({
   const colors = useThemeColors();
   const { totalItems } = useCart();
   const styles = getStyles(colors, insets.bottom);
+
+  // Check if current focused route specifies hidden tab bar
+  const focusedRoute = state.routes[state.index];
+  const focusedOptions = descriptors[focusedRoute?.key]?.options;
+  if (focusedOptions?.tabBarStyle && (focusedOptions.tabBarStyle as any).display === 'none') {
+    return null;
+  }
+
+  // Hide bottom tab bar if currently viewing FoodDetails or other full-screen modals
+  const nestedRouteName = getFocusedRouteNameFromRoute(focusedRoute);
+  if (nestedRouteName === 'FoodDetails' || nestedRouteName === 'Filter') {
+    return null;
+  }
 
   return (
     <View style={styles.tabBarWrapper} pointerEvents="box-none">
@@ -138,7 +152,7 @@ export function CustomBottomTabBar({
             );
           }
 
-          /* Standard Tab Buttons (Home, Saved, Orders, Support) */
+          /* Standard Tab Buttons (Home, Saved, Cart, Orders) */
           return (
             <TouchableOpacity
               key={route.key}
@@ -160,8 +174,8 @@ export function CustomBottomTabBar({
                     isFocused ? styles.tabIconActive : styles.tabIconInactive,
                   ]}
                 />
-                {/* Active Cart / Order Item Badge */}
-                {(route.name === 'Cart' || route.name === 'Orders') && totalItems > 0 && (
+                {/* Active Cart Item Badge */}
+                {route.name === 'Cart' && totalItems > 0 && (
                   <View style={styles.badgePill}>
                     <Text style={styles.badgeText}>{totalItems > 9 ? '9+' : totalItems}</Text>
                   </View>

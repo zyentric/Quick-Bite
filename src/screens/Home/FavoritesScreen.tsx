@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Image, ActivityIndicator, RefreshControl, StatusBar
+  ScrollView, Image, RefreshControl, StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -9,10 +9,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useUser } from '../../context/UserContext';
-import { authFetch } from '../../utils/authFetch';
-import { API_URL } from '../../config/api';
+import { useFavorites } from '../../context/FavoritesContext';
 import Icons from '../../constants/icons';
 import { HeartIcon, StarIcon, LockIcon } from '../../components/icons';
+import FavoritesSkeleton from '../../components/skeleton/FavoritesSkeleton';
 
 type FavoritesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Favorites'>;
 
@@ -33,66 +33,35 @@ const getCategoryIcon = (category?: string) => {
 export default function FavoritesScreen() {
   const navigation = useNavigation<FavoritesScreenNavigationProp>();
   const { isAuthenticated } = useUser();
+  const { favorites, loading, removeFavorite, refreshFavorites } = useFavorites();
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
-  const [items, setItems]       = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // Track locally toggled-off items (since backend may not have a separate favourites endpoint)
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
-  const fetchFavorites = useCallback(async (isRefresh = false) => {
-    if (!isAuthenticated) { setLoading(false); return; }
-    if (isRefresh) setRefreshing(true); else setLoading(true);
-    try {
-      // Try dedicated favourites endpoint first; fall back to all menu items
-      const res = await authFetch(`${API_URL}/menu-items/favorites`);
-      if (res.ok) {
-        const data = await res.json();
-        setItems(Array.isArray(data) ? data : data.items || []);
-      } else {
-        // Fallback: show all menu items as a general browsable list
-        const fallback = await fetch(`${API_URL}/menu-items`);
-        if (fallback.ok) {
-          const data = await fallback.json();
-          // Show highest-rated as "favourites"
-          setItems([...data].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 12));
-        }
-      }
-    } catch (e) {
-      console.error('Failed to fetch favorites:', e);
-    } finally {
-      if (isRefresh) setRefreshing(false); else setLoading(false);
-    }
-  }, [isAuthenticated]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshFavorites();
+    }, [refreshFavorites])
+  );
 
-  useFocusEffect(useCallback(() => { fetchFavorites(); }, [fetchFavorites]));
-
-  const handleRemove = (id: string) => {
-    setRemovedIds(prev => new Set([...prev, id]));
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshFavorites();
+    setRefreshing(false);
   };
 
-  const visibleItems = items.filter(i => !removedIds.has(i.id || i._id));
+  const handleRemove = async (id: string) => {
+    await removeFavorite(id);
+  };
 
-  const renderItem = (item: any) => {
-    const id = item.id || item._id;
-    const menuItem: MenuItem = {
-      id,
-      name: item.name,
-      price: item.price,
-      rating: item.rating || 5.0,
-      description: item.description || '',
-      image: item.image || '',
-      category: item.category,
-      customizations: item.customizations || [],
-    };
-
+  const renderItem = (item: MenuItem) => {
+    const id = item.id;
     return (
       <TouchableOpacity
         key={id}
         style={styles.card}
-        onPress={() => navigation.navigate('FoodDetails', { item: menuItem })}
+        onPress={() => navigation.navigate('FoodDetails', { item })}
         activeOpacity={0.9}
       >
         <View style={styles.imageContainer}>
@@ -108,7 +77,7 @@ export default function FavoritesScreen() {
           </View>
           {/* Remove from favourites */}
           <TouchableOpacity style={styles.favoriteBadge} onPress={() => handleRemove(id)}>
-            <HeartIcon size={16} color="#EF4444" />
+            <HeartIcon size={16} color="#EF4444" filled />
           </TouchableOpacity>
           {/* Price badge */}
           <View style={styles.priceBadge}>
@@ -138,7 +107,7 @@ export default function FavoritesScreen() {
             <TouchableOpacity onPress={() => navigation.navigate('MainTabs')} style={styles.backBtn}>
               <Image source={require('../../assets/back.png')} style={styles.backIconImg} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Favourites</Text>
+            <Text style={styles.headerTitle}>Favorites</Text>
             <View style={styles.backBtn} />
           </View>
         </View>
@@ -149,13 +118,13 @@ export default function FavoritesScreen() {
               <View style={{ marginBottom: 20 }}>
                 <LockIcon size={64} color={colors.primary} />
               </View>
-              <Text style={styles.guestText}>Please log in to view your favourites.</Text>
+              <Text style={styles.guestText}>Please log in to view your favorites.</Text>
               <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
                 <Text style={styles.loginButtonText}>Log In</Text>
               </TouchableOpacity>
             </View>
           ) : loading ? (
-            <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 60 }} />
+            <FavoritesSkeleton count={6} />
           ) : (
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -163,23 +132,31 @@ export default function FavoritesScreen() {
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
-                  onRefresh={() => fetchFavorites(true)}
+                  onRefresh={onRefresh}
                   colors={[colors.primary]}
                 />
               }
             >
-              {visibleItems.length === 0 ? (
+              {favorites.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <View style={{ marginBottom: 16, opacity: 0.4 }}>
-                    <HeartIcon size={48} color={colors.textMuted} />
+                  <View style={{ marginBottom: 16, opacity: 0.8 }}>
+                    <HeartIcon size={56} color="#EF4444" filled />
                   </View>
-                  <Text style={styles.emptyText}>No favourites yet.{'\n'}Tap the heart on any item to add it!</Text>
+                  <Text style={styles.emptyTitle}>No Favorites Yet</Text>
+                  <Text style={styles.emptyText}>Tap the heart icon on any dish to save it to your favorites list.</Text>
+                  <TouchableOpacity
+                    style={styles.exploreBtn}
+                    onPress={() => navigation.navigate('FoodMenu')}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.exploreBtnText}>Explore Menu</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <>
-                  <Text style={styles.subtitle}>Your favourite dishes, ready to order.</Text>
+                  <Text style={styles.subtitle}>Your favorite dishes, ready to order.</Text>
                   <View style={styles.grid}>
-                    {visibleItems.map(renderItem)}
+                    {favorites.map(renderItem)}
                   </View>
                 </>
               )}
@@ -213,10 +190,27 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 15, fontWeight: '600', color: colors.primary,
     textAlign: 'center', marginBottom: 20, marginTop: 10,
   },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80 },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 24 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 8 },
   emptyText: {
-    fontSize: 16, color: colors.textMuted, textAlign: 'center',
-    marginTop: 16, lineHeight: 22,
+    fontSize: 14, color: colors.textMuted, textAlign: 'center',
+    marginBottom: 24, lineHeight: 20,
+  },
+  exploreBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 20,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  exploreBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: { width: '47%', marginBottom: 20 },

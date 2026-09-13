@@ -1,15 +1,33 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  StatusBar,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../types';
+import { RootStackParamList, DeliveryAddress } from '../../../types';
 import { useThemeColors, ThemeColors } from '../../../theme/colors';
 import { useUser } from '../../../context/UserContext';
+import { useToast } from '../../../context/ToastContext';
 import { authFetch } from '../../../utils/authFetch';
 import { API_URL } from '../../../config/api';
-import { LockIcon, HomeBuildingIcon, WorkBuildingIcon, LocationPinIcon } from '../../../components/icons';
+import {
+  LockIcon,
+  HomeBuildingIcon,
+  WorkBuildingIcon,
+  LocationPinIcon,
+  EditIcon,
+  TrashIcon,
+  CheckCircleIcon,
+} from '../../../components/icons';
 import CustomAlert from '../../../components/CustomAlert';
+import CustomLoader from '../../../components/CustomLoader';
 
 type DeliveryAddressNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DeliveryAddress'>;
 
@@ -17,16 +35,24 @@ export default function DeliveryAddressScreen() {
   const navigation = useNavigation<DeliveryAddressNavigationProp>();
   const colors = useThemeColors();
   const styles = getStyles(colors);
-  const { userProfile, isAuthenticated } = useUser();
+  const { userProfile, isAuthenticated, refreshUserProfile } = useUser();
+  const { showToast } = useToast();
 
-  const [addresses, setAddresses] = useState<any[]>(userProfile?.savedAddresses || []);
-  const [selectedId, setSelectedId] = useState<string>(
-    userProfile?.savedAddresses?.[0]?.label || ''
-  );
+  const addresses = userProfile?.savedAddresses || [];
+
+  const [loading, setLoading] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<DeliveryAddress | null>(null);
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUserProfile();
+    }, [refreshUserProfile])
+  );
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
@@ -34,20 +60,102 @@ export default function DeliveryAddressScreen() {
     setAlertVisible(true);
   };
 
+  const handleSetDefault = async (item: DeliveryAddress) => {
+    const targetId = item._id || item.id || item.label;
+    if (!targetId) return;
 
+    setLoading(true);
+    try {
+      const res = await authFetch(`${API_URL}/users/addresses/${targetId}/default`, {
+        method: 'PUT',
+      });
+      if (res.ok) {
+        await refreshUserProfile();
+        showToast({
+          type: 'success',
+          title: 'Default Address',
+          message: `"${item.label}" is now your default delivery address`,
+        });
+      } else {
+        const data = await res.json();
+        showAlert('Error', data.message || 'Failed to set default address');
+      }
+    } catch (e: any) {
+      showAlert('Network Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = (item: DeliveryAddress) => {
+    setAddressToDelete(item);
+    setConfirmDeleteVisible(true);
+  };
+
+  const handleDeleteAddress = async () => {
+    if (!addressToDelete) return;
+    const targetId = addressToDelete._id || addressToDelete.id || addressToDelete.label;
+    if (!targetId) return;
+
+    setLoading(true);
+    try {
+      const res = await authFetch(`${API_URL}/users/addresses/${targetId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        await refreshUserProfile();
+        showToast({
+          type: 'info',
+          title: 'Address Removed',
+          message: `"${addressToDelete.label}" was deleted successfully`,
+        });
+      } else {
+        const data = await res.json();
+        showAlert('Error', data.message || 'Failed to delete address');
+      }
+    } catch (e: any) {
+      showAlert('Network Error', e.message);
+    } finally {
+      setLoading(false);
+      setAddressToDelete(null);
+    }
+  };
+
+  const handleEdit = (item: DeliveryAddress, index: number) => {
+    navigation.navigate('AddNewAddress', {
+      addressToEdit: item,
+      editIndex: index,
+    });
+  };
+
+  const renderAddressTypeIcon = (label?: string) => {
+    const l = (label || '').toLowerCase();
+    if (l === 'home') {
+      return <HomeBuildingIcon size={20} color={colors.primary} />;
+    }
+    if (l === 'work' || l === 'office') {
+      return <WorkBuildingIcon size={20} color={colors.primary} />;
+    }
+    return <LocationPinIcon size={20} color={colors.primary} />;
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primaryBackground} />
+      <CustomLoader visible={loading} message="Updating address..." />
+
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           onPress={() => navigation.goBack()}
         >
-          <Image source={require('../../../assets/back.png')} style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: colors.primary }} />
+          <Image
+            source={require('../../../assets/back.png')}
+            style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: colors.primary }}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Delivery Address</Text>
+        <Text style={styles.headerTitle}>Delivery Addresses</Text>
         <View style={styles.rightPlaceholder} />
       </View>
 
@@ -64,42 +172,72 @@ export default function DeliveryAddressScreen() {
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            
             <View style={styles.listContainer}>
               {addresses.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>No saved addresses yet.</Text>
-                  <Text style={styles.emptySubText}>Add an address to start ordering!</Text>
+                  <Text style={styles.emptySubText}>Add an address to start ordering tasty meals!</Text>
                 </View>
               ) : (
                 addresses.map((item, index) => {
-                  const isSelected = selectedId === item.label;
-                  const fullAddress = [item.addressLine1, item.addressLine2, item.city, item.zipCode].filter(Boolean).join(', ');
+                  const fullAddress = [item.addressLine1, item.addressLine2, item.city, item.zipCode]
+                    .filter(Boolean)
+                    .join(', ');
+                  const isDefault = item.isDefault || index === 0;
+
                   return (
-                    <View key={index}>
-                      <TouchableOpacity 
-                        style={styles.addressRow}
-                        activeOpacity={0.7}
-                        onPress={() => setSelectedId(item.label)}
-                      >
-                        <View style={styles.iconContainer}>
-                          {item.label?.toLowerCase() === 'home' ? (
-                            <HomeBuildingIcon size={20} color={colors.primary} />
-                          ) : item.label?.toLowerCase() === 'work' || item.label?.toLowerCase() === 'office' ? (
-                            <WorkBuildingIcon size={20} color={colors.primary} />
-                          ) : (
-                            <LocationPinIcon size={20} color={colors.primary} />
+                    <View key={item._id?.toString() || index.toString()} style={styles.addressCard}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.titleRow}>
+                          <View style={styles.iconCircle}>
+                            {renderAddressTypeIcon(item.label)}
+                          </View>
+                          <Text style={styles.addressLabel}>{item.label}</Text>
+                          {isDefault && (
+                            <View style={styles.defaultBadge}>
+                              <Text style={styles.defaultBadgeText}>DEFAULT</Text>
+                            </View>
                           )}
                         </View>
-                        <View style={styles.addressInfo}>
-                          <Text style={styles.addressTitle}>{item.label}</Text>
-                          <Text style={styles.addressText}>{fullAddress}</Text>
+                      </View>
+
+                      <Text style={styles.addressBodyText}>{fullAddress}</Text>
+
+                      <View style={styles.cardActions}>
+                        {!isDefault ? (
+                          <TouchableOpacity
+                            style={styles.setDefaultBtn}
+                            onPress={() => handleSetDefault(item)}
+                          >
+                            <Text style={styles.setDefaultText}>Set as Default</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <View style={styles.activeDefaultPill}>
+                            <CheckCircleIcon size={14} color="#10B981" />
+                            <Text style={styles.activeDefaultText}>Default Active</Text>
+                          </View>
+                        )}
+
+                        <View style={styles.actionButtonsGroup}>
+                          <TouchableOpacity
+                            style={styles.actionIconButton}
+                            onPress={() => handleEdit(item, index)}
+                            accessibilityLabel="Edit Address"
+                          >
+                            <EditIcon size={16} color={colors.primary} />
+                            <Text style={[styles.actionBtnLabel, { color: colors.primary }]}>Edit</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[styles.actionIconButton, styles.deleteActionBtn]}
+                            onPress={() => confirmDelete(item)}
+                            accessibilityLabel="Delete Address"
+                          >
+                            <TrashIcon size={16} color="#EF4444" />
+                            <Text style={[styles.actionBtnLabel, { color: '#EF4444' }]}>Delete</Text>
+                          </TouchableOpacity>
                         </View>
-                        <View style={[styles.radioOutline, isSelected && styles.radioActiveOutline]}>
-                          {isSelected && <View style={styles.radioInner} />}
-                        </View>
-                      </TouchableOpacity>
-                      {index < addresses.length - 1 && <View style={styles.separator} />}
+                      </View>
                     </View>
                   );
                 })
@@ -107,24 +245,37 @@ export default function DeliveryAddressScreen() {
             </View>
 
             <View style={styles.addButtonContainer}>
-              <TouchableOpacity 
-                style={styles.addAddressBtn} 
+              <TouchableOpacity
+                style={styles.addAddressBtn}
                 onPress={() => {
-                  if (addresses.length >= 5) {
-                    showAlert('Limit Reached', 'You can save a maximum of 5 delivery addresses.');
+                  if (addresses.length >= 8) {
+                    showAlert('Limit Reached', 'You can save a maximum of 8 delivery addresses.');
                     return;
                   }
                   navigation.navigate('AddNewAddress');
                 }}
               >
-                <Text style={styles.addAddressBtnText}>Add New Address</Text>
+                <Text style={styles.addAddressBtnText}>+ Add New Address</Text>
               </TouchableOpacity>
             </View>
-
           </ScrollView>
         )}
       </View>
-      <CustomAlert 
+
+      {/* Confirmation modal for delete */}
+      <CustomAlert
+        visible={confirmDeleteVisible}
+        title="Delete Address"
+        message={`Are you sure you want to remove "${addressToDelete?.label || 'this address'}" from your saved addresses?`}
+        showCancel={true}
+        cancelText="Cancel"
+        confirmText="Delete"
+        onClose={() => setConfirmDeleteVisible(false)}
+        onConfirm={handleDeleteAddress}
+      />
+
+      {/* General alert */}
+      <CustomAlert
         visible={alertVisible}
         title={alertTitle}
         message={alertMessage}
@@ -134,167 +285,224 @@ export default function DeliveryAddressScreen() {
   );
 }
 
-const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primaryBackground,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 30,
-  },
-  backButton: {
-    padding: 10,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  rightPlaceholder: {
-    width: 40, 
-  },
-  contentContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-    paddingTop: 30,
-  },
-  scrollContent: {
-    paddingHorizontal: 25,
-    paddingBottom: 80,
-  },
-  listContainer: {
-    marginBottom: 40,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-    backgroundColor: colors.inputBackground,
-    borderRadius: 20,
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 6,
-  },
-  emptySubText: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-  },
-  iconContainer: {
-    marginRight: 15,
-  },
-  houseIcon: {
-    fontSize: 28,
-    color: colors.primary,
-    opacity: 0.8, // Make it look a bit like a line icon with color if it was SVG
-  },
-  addressInfo: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  addressTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  radioOutline: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E0E0E0', 
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioActiveOutline: {
-    borderColor: colors.primary,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#F0F0F0', // Very light grey line between items
-    width: '100%',
-  },
-  addButtonContainer: {
-    alignItems: 'center',
-  },
-  addAddressBtn: {
-    backgroundColor: colors.inputBackground, // Light orange tinted background
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 20,
-  },
-  addAddressBtnText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  guestContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    marginTop: -50,
-  },
-  guestIcon: {
-    fontSize: 80,
-    marginBottom: 20,
-    opacity: 0.8,
-  },
-  guestText: {
-    fontSize: 18,
-    color: colors.primary,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  }
-});
+const getStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.primaryBackground,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 25,
+    },
+    backButton: {
+      padding: 10,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+    rightPlaceholder: {
+      width: 40,
+    },
+    contentContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      overflow: 'hidden',
+      paddingTop: 24,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 60,
+    },
+    listContainer: {
+      marginBottom: 24,
+      gap: 14,
+    },
+    addressCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    iconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.inputBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    addressLabel: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    defaultBadge: {
+      backgroundColor: '#FF7622',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    defaultBadgeText: {
+      color: '#FFFFFF',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+    },
+    addressBodyText: {
+      fontSize: 13,
+      color: colors.textMuted,
+      lineHeight: 19,
+      marginBottom: 14,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 12,
+    },
+    setDefaultBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: colors.inputBackground,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    setDefaultText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textMuted,
+    },
+    activeDefaultPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    activeDefaultText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#10B981',
+    },
+    actionButtonsGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    actionIconButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+      backgroundColor: colors.inputBackground,
+    },
+    deleteActionBtn: {
+      backgroundColor: '#FEF2F2',
+    },
+    actionBtnLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 50,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 20,
+      borderStyle: 'dashed',
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 6,
+    },
+    emptySubText: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    addButtonContainer: {
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    addAddressBtn: {
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 32,
+      borderRadius: 25,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 4,
+      width: '100%',
+      alignItems: 'center',
+    },
+    addAddressBtnText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      fontSize: 15,
+    },
+    guestContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+      marginTop: -50,
+    },
+    guestText: {
+      fontSize: 18,
+      color: colors.primary,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 30,
+    },
+    loginButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      paddingHorizontal: 40,
+      borderRadius: 25,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    loginButtonText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  });

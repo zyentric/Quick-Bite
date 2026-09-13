@@ -19,8 +19,10 @@ import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useUser } from '../../context/UserContext';
 import { authFetch } from '../../utils/authFetch';
 import { API_URL } from '../../config/api';
+import { wsService } from '../../services/WebSocketService';
 import CustomLoader from '../../components/CustomLoader';
 import CustomAlert from '../../components/CustomAlert';
+import OrderCardSkeleton from '../../components/skeleton/OrderCardSkeleton';
 import {
   ShopkeeperHeader,
   ShopkeeperTabs,
@@ -34,10 +36,17 @@ import {
 type ShopkeeperDashboardNavProp = NativeStackNavigationProp<RootStackParamList, 'ShopkeeperDashboard'>;
 
 function mapApiShopkeeperOrder(o: any): ShopkeeperOrder {
+  const contactPhone =
+    o.user?.phone ||
+    (typeof o.deliveryAddress === 'object'
+      ? o.deliveryAddress?.phone || o.deliveryAddress?.contactNumber
+      : '') ||
+    '';
+
   return {
     id: o.id || o._id,
     customerName: o.user?.name || 'Customer',
-    customerPhone: o.user?.phone || '',
+    customerPhone: contactPhone,
     address:
       typeof o.deliveryAddress === 'string'
         ? o.deliveryAddress
@@ -45,11 +54,24 @@ function mapApiShopkeeperOrder(o: any): ShopkeeperOrder {
     status: o.status,
     paymentStatus: o.paymentStatus || 'Paid',
     totalAmount: Number(o.totalAmount || 0),
-    items: (o.items || []).map((item: any) => ({
-      name: item.menuItem?.name || item.name || 'Food Item',
-      quantity: item.quantity || 1,
-      price: item.menuItem?.price || item.price || 0,
-    })),
+    items: (o.items || []).map((item: any) => {
+      const m = item.menuItem || item;
+      const itemName = m?.name || item.name || 'Food Item';
+      const image = m?.image || item.image || '';
+      const category = m?.category || item.category || '';
+      const isVeg =
+        m?.isVeg !== undefined
+          ? m.isVeg
+          : !(itemName || '').match(/chicken|meat|fish|mutton|beef|prawn|egg|bacon|ham/i);
+      return {
+        name: itemName,
+        quantity: item.quantity || 1,
+        price: m?.price || item.price || 0,
+        isVeg,
+        image,
+        category,
+      };
+    }),
     deliveryManName: o.deliveryMan?.name,
     deliveryManPhone: o.deliveryMan?.phone,
     createdAt: o.createdAt || new Date().toISOString(),
@@ -67,6 +89,7 @@ export default function ShopkeeperDashboardScreen() {
   const [activeOrders, setActiveOrders] = useState<ShopkeeperOrder[]>([]);
   const [historyOrders, setHistoryOrders] = useState<ShopkeeperOrder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Modals
@@ -151,12 +174,24 @@ export default function ShopkeeperDashboardScreen() {
     useCallback(() => {
       loadAllData();
       const onBackPress = () => {
+        if (isStoreModalVisible) {
+          setStoreModalVisible(false);
+          return true;
+        }
+        if (isLogoutModalVisible) {
+          setLogoutModalVisible(false);
+          return true;
+        }
+        if (alertVisible) {
+          setAlertVisible(false);
+          return true;
+        }
         BackHandler.exitApp();
         return true;
       };
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [isAuthenticated])
+    }, [isAuthenticated, isStoreModalVisible, isLogoutModalVisible, alertVisible])
   );
 
   const onRefresh = useCallback(async () => {
@@ -165,9 +200,18 @@ export default function ShopkeeperDashboardScreen() {
     setRefreshing(false);
   }, [isAuthenticated]);
 
+  // WebSocket Live Updates subscription
+  useEffect(() => {
+    const unsubscribe = wsService.subscribe((event) => {
+      fetchActiveOrders();
+      fetchHistoryOrders();
+    });
+    return unsubscribe;
+  }, [isAuthenticated]);
+
   // Update Status
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-    setLoading(true);
+    setActionLoading(true);
     try {
       const res = await authFetch(`${API_URL}/orders/${orderId}/status`, {
         method: 'PUT',
@@ -194,7 +238,7 @@ export default function ShopkeeperDashboardScreen() {
     } catch (e: any) {
       showAlert('Network Error', e.message);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -244,7 +288,7 @@ export default function ShopkeeperDashboardScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#1E1B18" />
 
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <CustomLoader visible={loading} message="Updating Kitchen Dashboard..." />
+        <CustomLoader visible={actionLoading} message="Updating Kitchen Order..." />
 
         <CustomAlert
           visible={alertVisible}
@@ -277,25 +321,33 @@ export default function ShopkeeperDashboardScreen() {
           historyCount={historyList.length}
         />
 
-        {/* Orders Feed */}
-        <FlatList
-          data={currentList}
-          renderItem={({ item }) => (
-            <ShopkeeperCard
-              order={item}
-              onPress={() => navigation.navigate('ShopkeeperOrderDetails', { orderId: item.id })}
-              onAcceptPress={(orderId) => handleUpdateStatus(orderId, 'Accepted')}
-              onRejectPress={(orderId) => handleUpdateStatus(orderId, 'Cancelled')}
-              onMarkReadyPress={(orderId) => handleUpdateStatus(orderId, 'ReadyForPickup')}
-            />
-          )}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
-          }
-          ListEmptyComponent={<ShopkeeperEmptyState activeTab={activeTab} />}
-        />
+        {/* Orders Feed / Skeletons */}
+        {loading && activeOrders.length === 0 && historyOrders.length === 0 ? (
+          <View style={styles.listContent}>
+            {[0, 1, 2].map((idx) => (
+              <OrderCardSkeleton key={idx} />
+            ))}
+          </View>
+        ) : (
+          <FlatList
+            data={currentList}
+            renderItem={({ item }) => (
+              <ShopkeeperCard
+                order={item}
+                onPress={() => navigation.navigate('ShopkeeperOrderDetails', { orderId: item.id })}
+                onAcceptPress={(orderId) => handleUpdateStatus(orderId, 'Accepted')}
+                onRejectPress={(orderId) => handleUpdateStatus(orderId, 'Cancelled')}
+                onMarkReadyPress={(orderId) => handleUpdateStatus(orderId, 'ReadyForPickup')}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+            }
+            ListEmptyComponent={<ShopkeeperEmptyState activeTab={activeTab} />}
+          />
+        )}
 
         {/* Store Settings & Operation Modal */}
         <ShopkeeperStoreModal
