@@ -23,6 +23,8 @@ import AddCardScreen from '../screens/ProfileMenu/PaymentMethod/AddCardScreen';
 import SettingsScreen from '../screens/ProfileMenu/Settings/SettingsScreen';
 import NotificationSettingScreen from '../screens/ProfileMenu/Settings/NotificationSettingScreen';
 import PasswordSettingScreen from '../screens/ProfileMenu/Settings/PasswordSettingScreen';
+import TermsAndConditionsScreen from '../screens/ProfileMenu/Settings/TermsAndConditionsScreen';
+import PrivacyPolicyScreen from '../screens/ProfileMenu/Settings/PrivacyPolicyScreen';
 import NotificationsScreen from '../screens/Notifications/NotificationsScreen';
 import FilterScreen from '../screens/Search/FilterScreen';
 import CheckoutScreen from '../screens/Checkout/CheckoutScreen';
@@ -33,6 +35,7 @@ import MyOrdersScreen from '../screens/ProfileMenu/MyOrders/MyOrdersScreen';
 import CancelOrderScreen from '../screens/ProfileMenu/MyOrders/CancelOrderScreen';
 import CancelSuccessScreen from '../screens/ProfileMenu/MyOrders/CancelSuccessScreen';
 import LeaveReviewScreen from '../screens/ProfileMenu/MyOrders/LeaveReviewScreen';
+import OrderDetailsScreen from '../screens/ProfileMenu/MyOrders/OrderDetailsScreen';
 import FoodMenuScreen from '../screens/FoodMenu/FoodMenuScreen';
 import FoodDetailsScreen from '../screens/FoodMenu/FoodDetailsScreen';
 import BestSellerScreen from '../screens/Home/BestSellerScreen';
@@ -43,7 +46,9 @@ import SupportScreen from '../screens/Help/SupportScreen';
 import HelpCenterScreen from '../screens/Help/HelpCenterScreen'; // Forced reload
 import ShopkeeperDashboardScreen from '../screens/Shopkeeper/ShopkeeperDashboardScreen';
 import DeliveryDashboardScreen from '../screens/Home/DeliveryDashboardScreen';
+import DeliveryOrderDetailsScreen from '../screens/Home/DeliveryOrderDetailsScreen';
 import ShopkeeperOrderDetailsScreen from '../screens/Shopkeeper/ShopkeeperOrderDetailsScreen';
+import ChatScreen from '../screens/Chat/ChatScreen';
 import { useCart } from '../context/CartContext';
 import { useThemeColors } from '../theme/colors';
 import Icons from '../constants/icons';
@@ -110,6 +115,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="NotificationSetting" component={NotificationSettingScreen} />
         <Stack.Screen name="PasswordSetting" component={PasswordSettingScreen} />
+        <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Cart" component={CartScreen} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
@@ -117,6 +124,7 @@ export default function AppNavigator() {
         <Stack.Screen name="OrderConfirmed" component={OrderConfirmedScreen} />
         <Stack.Screen name="DeliveryTime" component={DeliveryTimeScreen} />
         <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
+        <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
         <Stack.Screen name="CancelOrder" component={CancelOrderScreen} />
         <Stack.Screen name="CancelSuccess" component={CancelSuccessScreen} />
         <Stack.Screen name="LeaveReview" component={LeaveReviewScreen} />
@@ -147,6 +155,13 @@ export default function AppNavigator() {
 
         {/* Delivery Man Screens */}
         <Stack.Screen name="DeliveryDashboard" component={DeliveryDashboardScreen} />
+        <Stack.Screen name="DeliveryOrderDetails" component={DeliveryOrderDetailsScreen} />
+
+        {/* In-App Live Order Chat */}
+        <Stack.Screen name="Chat" component={ChatScreen} />
+
+        {/* Global Filter Screen */}
+        <Stack.Screen name="Filter" component={FilterScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

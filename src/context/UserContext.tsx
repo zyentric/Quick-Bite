@@ -3,6 +3,8 @@ import AsyncStorage from '../utils/storage';
 import { registerLogout, authFetch } from '../utils/authFetch';
 import { API_URL } from '../config/api';
 
+import { DeliveryAddress } from '../types';
+
 export type UserRole = 'customer' | 'shopkeeper' | 'delivery_man' | 'admin';
 
 export interface UserProfile {
@@ -13,7 +15,7 @@ export interface UserProfile {
   phone?: string;
   dob?: string;
   profilePicture?: string;
-  savedAddresses?: any[];
+  savedAddresses?: DeliveryAddress[];
   role?: string;
   vehicleType?: string;
   vehicleNumber?: string;

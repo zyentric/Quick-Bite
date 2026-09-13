@@ -1,6 +1,6 @@
 {
-  "name": "diggy",
-  "version": "0.0.1",
+  "name": "quickbite",
+  "version": "1.0.12",
   "private": true,
   "scripts": {
     "android": "react-native run-android",

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,18 @@ import {
   Modal,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  TextInput,
 } from 'react-native';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { PackageIcon, WarningTriangleIcon } from '../icons/DeliveryIcons';
+import { LockIcon } from '../icons';
 import { DeliveryOrder } from './DeliveryCard';
 
 interface DeliveryConfirmModalProps {
   visible: boolean;
   order: DeliveryOrder | null;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (pin: string) => void;
 }
 
 export default function DeliveryConfirmModal({
@@ -27,9 +29,28 @@ export default function DeliveryConfirmModal({
   const colors = useThemeColors();
   const styles = getStyles(colors);
 
+  const [pin, setPin] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (visible) {
+      setPin('');
+      setErrorMsg('');
+    }
+  }, [visible]);
+
   if (!order) return null;
 
   const isCOD = order.paymentStatus === 'Pending';
+
+  const handleConfirm = () => {
+    if (pin.trim().length !== 4) {
+      setErrorMsg('Please enter the complete 4-digit PIN');
+      return;
+    }
+    setErrorMsg('');
+    onConfirm(pin.trim());
+  };
 
   return (
     <Modal
@@ -48,15 +69,44 @@ export default function DeliveryConfirmModal({
             <PackageIcon size={28} color={colors.primary} />
           </View>
 
-          <Text style={styles.modalTitle}>Confirm Order Delivery</Text>
+          <Text style={styles.modalTitle}>Confirm Delivery with PIN</Text>
 
           <Text style={styles.modalMessage}>
-            Are you at the customer's address and ready to complete order{' '}
+            Ask the customer for the{' '}
+            <Text style={{ fontWeight: 'bold', color: colors.text }}>
+              4-digit Delivery PIN
+            </Text>{' '}
+            shown on their tracking screen to complete order{' '}
             <Text style={{ fontWeight: 'bold', color: colors.text }}>
               #{order.id.slice(-6).toUpperCase()}
             </Text>
-            ?
+            .
           </Text>
+
+          {/* Secure 4-digit PIN input */}
+          <View style={styles.pinContainer}>
+            <View style={styles.pinHeaderRow}>
+              <LockIcon size={14} color={colors.primary} />
+              <Text style={styles.pinLabel}>Customer Delivery PIN</Text>
+            </View>
+
+            <TextInput
+              style={styles.pinInput}
+              placeholder="••••"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+              maxLength={4}
+              value={pin}
+              onChangeText={(val) => {
+                setPin(val);
+                if (errorMsg) setErrorMsg('');
+              }}
+              textAlign="center"
+              autoFocus={true}
+            />
+
+            {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+          </View>
 
           {isCOD && (
             <View style={styles.codWarningBox}>
@@ -73,11 +123,17 @@ export default function DeliveryConfirmModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modalConfirmBtn, { backgroundColor: '#10B981' }]}
-              onPress={onConfirm}
+              style={[
+                styles.modalConfirmBtn,
+                {
+                  backgroundColor: pin.trim().length === 4 ? '#10B981' : '#9CA3AF',
+                },
+              ]}
+              onPress={handleConfirm}
               activeOpacity={0.85}
+              disabled={pin.trim().length !== 4}
             >
-              <Text style={styles.modalConfirmBtnText}>Yes, Delivered</Text>
+              <Text style={styles.modalConfirmBtnText}>Verify & Deliver</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -128,11 +184,51 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
     },
     modalMessage: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.textMuted,
       textAlign: 'center',
-      lineHeight: 20,
+      lineHeight: 18,
       marginBottom: 16,
+    },
+    pinContainer: {
+      width: '100%',
+      backgroundColor: colors.background,
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    pinHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 10,
+    },
+    pinLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    pinInput: {
+      width: 140,
+      height: 50,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: colors.primary,
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.text,
+      letterSpacing: 8,
+      textAlign: 'center',
+    },
+    errorText: {
+      color: '#EF4444',
+      fontSize: 11,
+      fontWeight: '700',
+      marginTop: 6,
     },
     codWarningBox: {
       flexDirection: 'row',

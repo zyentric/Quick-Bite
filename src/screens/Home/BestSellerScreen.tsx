@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, ActivityIndicator, StatusBar } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, StatusBar, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,6 +7,7 @@ import { RootStackParamList, MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
 import { API_URL } from '../../config/api';
+import FavoritesSkeleton, { FavoriteCardSkeleton } from '../../components/skeleton/FavoritesSkeleton';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 60) / 2;
@@ -31,26 +32,64 @@ export default function BestSellerScreen() {
   const { addToCart } = useCart();
 
   const [items, setItems] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchItems = useCallback(async (isRefresh = false, pageNum = 1) => {
+    if (isRefresh) {
+      setRefreshing(true);
+      pageNum = 1;
+    } else if (pageNum > 1) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/menu-items?page=${pageNum}&limit=10&sort=popular`);
+      if (res.ok) {
+        const data = await res.json();
+        const rawList = Array.isArray(data) ? data : (data.items || []);
+
+        if (pageNum === 1) {
+          setItems(rawList);
+        } else {
+          setItems((prev) => {
+            const existingIds = new Set(prev.map((i) => i.id || i._id));
+            const fresh = rawList.filter((i: any) => !existingIds.has(i.id || i._id));
+            return [...prev, ...fresh];
+          });
+        }
+
+        setPage(pageNum);
+
+        if (Array.isArray(data)) {
+          setHasMore(rawList.length >= 10);
+        } else {
+          setHasMore(data.hasMore ?? (pageNum < (data.totalPages || 1)));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch best sellers:', e);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else if (pageNum > 1) setLoadingMore(false);
+      else setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const res = await fetch(`${API_URL}/menu-items`);
-        if (res.ok) {
-          const data = await res.json();
-          // Sort by rating descending → best sellers
-          const sorted = [...data].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-          setItems(sorted);
-        }
-      } catch (e) {
-        console.error('Failed to fetch best sellers:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchItems();
-  }, []);
+    fetchItems(false, 1);
+  }, [fetchItems]);
+
+  const handleLoadMore = () => {
+    if (!loading && !loadingMore && !refreshing && hasMore) {
+      fetchItems(false, page + 1);
+    }
+  };
 
   const renderCard = (item: any) => (
     <TouchableOpacity
@@ -131,15 +170,40 @@ export default function BestSellerScreen() {
 
       <View style={styles.contentContainer}>
         {loading ? (
-          <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 60 }} />
+          <FavoritesSkeleton count={6} />
         ) : items.length === 0 ? (
           <Text style={styles.emptyText}>No items found.</Text>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => fetchItems(true, 1)}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+            onScroll={({ nativeEvent }) => {
+              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+              const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 120;
+              if (isCloseToBottom) {
+                handleLoadMore();
+              }
+            }}
+            scrollEventThrottle={16}
+          >
             <Text style={styles.subtitle}>Our most popular dishes — loved by everyone!</Text>
             <View style={styles.gridContainer}>
               {items.map(renderCard)}
             </View>
+            {loadingMore && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 10 }}>
+                <FavoriteCardSkeleton />
+                <FavoriteCardSkeleton />
+              </View>
+            )}
           </ScrollView>
         )}
       </View>

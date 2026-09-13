@@ -7,9 +7,22 @@ interface CustomAlertProps {
   title: string;
   message: string;
   onClose: () => void;
+  showCancel?: boolean;
+  cancelText?: string;
+  confirmText?: string;
+  onConfirm?: () => void;
 }
 
-export default function CustomAlert({ visible, title, message, onClose }: CustomAlertProps) {
+export default function CustomAlert({
+  visible,
+  title,
+  message,
+  onClose,
+  showCancel = false,
+  cancelText = 'Cancel',
+  confirmText = 'OK',
+  onConfirm,
+}: CustomAlertProps) {
   const colors = useThemeColors();
 
   return (
@@ -23,12 +36,34 @@ export default function CustomAlert({ visible, title, message, onClose }: Custom
         <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
           <Text style={[styles.modalTitle, { color: colors.primary }]}>{title}</Text>
           <Text style={[styles.modalMessage, { color: colors.text }]}>{message}</Text>
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: colors.primary }]}
-            onPress={onClose}
-          >
-            <Text style={styles.modalButtonText}>OK</Text>
-          </TouchableOpacity>
+          {showCancel ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.modalSecondaryButton, { borderColor: colors.border }]}
+                onPress={onClose}
+              >
+                <Text style={[styles.modalSecondaryButtonText, { color: colors.textMuted }]}>
+                  {cancelText}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  onClose();
+                  if (onConfirm) onConfirm();
+                }}
+              >
+                <Text style={styles.modalButtonText}>{confirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: colors.primary }]}
+              onPress={onClose}
+            >
+              <Text style={styles.modalButtonText}>{confirmText}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </Modal>
@@ -65,13 +100,34 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   modalButton: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
+    minWidth: 90,
+    alignItems: 'center',
   },
   modalButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  modalSecondaryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  modalSecondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

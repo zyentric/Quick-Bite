@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, Dimensions, ActivityIndicator, StatusBar
+  Image, Dimensions, StatusBar, RefreshControl
 } from 'react-native';
+import FavoritesSkeleton, { FavoriteCardSkeleton } from '../../components/skeleton/FavoritesSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../types';
+import { RootStackParamList, MenuItem } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useCart } from '../../context/CartContext';
 import { API_URL } from '../../config/api';
@@ -32,30 +33,69 @@ export default function RecommendationsScreen() {
   const { addToCart } = useCart();
 
   const [items, setItems]         = useState<any[]>([]);
+  const [page, setPage]           = useState(1);
+  const [hasMore, setHasMore]     = useState(true);
   const [loading, setLoading]     = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const getQty = (id: string) => quantities[id] || 1;
   const updateQty = (id: string, delta: number) =>
     setQuantities(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) + delta) }));
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const res = await fetch(`${API_URL}/menu-items`);
-        if (res.ok) {
-          const data = await res.json();
-          // Reverse to show newer items as recommendations
-          setItems([...data].reverse());
+  const fetchItems = useCallback(async (isRefresh = false, pageNum = 1) => {
+    if (isRefresh) {
+      setRefreshing(true);
+      pageNum = 1;
+    } else if (pageNum > 1) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/menu-items?page=${pageNum}&limit=10`);
+      if (res.ok) {
+        const data = await res.json();
+        const rawList = Array.isArray(data) ? data : (data.items || []);
+
+        if (pageNum === 1) {
+          setItems(rawList);
+        } else {
+          setItems((prev) => {
+            const existingIds = new Set(prev.map((i) => i.id || i._id));
+            const fresh = rawList.filter((i: any) => !existingIds.has(i.id || i._id));
+            return [...prev, ...fresh];
+          });
         }
-      } catch (e) {
-        console.error('Failed to fetch recommendations:', e);
-      } finally {
-        setLoading(false);
+
+        setPage(pageNum);
+
+        if (Array.isArray(data)) {
+          setHasMore(rawList.length >= 10);
+        } else {
+          setHasMore(data.hasMore ?? (pageNum < (data.totalPages || 1)));
+        }
       }
-    };
-    fetchItems();
+    } catch (e) {
+      console.error('Failed to fetch recommendations:', e);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else if (pageNum > 1) setLoadingMore(false);
+      else setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchItems(false, 1);
+  }, [fetchItems]);
+
+  const handleLoadMore = () => {
+    if (!loading && !loadingMore && !refreshing && hasMore) {
+      fetchItems(false, page + 1);
+    }
+  };
 
   const handleAddToCart = (item: any) => {
     const qty = getQty(item.id || item._id);
@@ -75,37 +115,64 @@ export default function RecommendationsScreen() {
   const featuredItem = items[0];
   const gridItems    = items.slice(1);
 
-  const renderGridCard = (item: any) => (
-    <View key={item.id || item._id} style={styles.gridCardContainer}>
-      <View style={styles.imageWrapper}>
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.gridCardImage} />
-        ) : (
-          <View style={[styles.gridCardImage, styles.imagePlaceholder]}>
-            <Image source={getCategoryIcon(item.category)} style={styles.placeholderIcon} />
+  const normalizeMenuItem = (item: any): MenuItem => ({
+    id: item.id || item._id,
+    name: item.name,
+    price: item.price,
+    rating: item.rating || 5.0,
+    description: item.description || '',
+    image: item.image || '',
+    category: item.category || 'Special',
+    customizations: item.customizations || [],
+    originalPrice: item.originalPrice,
+    discountBadge: item.discountBadge,
+  });
+
+  const renderGridCard = (item: any) => {
+    const menuItem = normalizeMenuItem(item);
+    return (
+      <TouchableOpacity
+        key={menuItem.id}
+        style={styles.gridCardContainer}
+        activeOpacity={0.85}
+        onPress={() => (navigation as any).navigate('FoodDetails', { item: menuItem })}
+      >
+        <View style={styles.imageWrapper}>
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.gridCardImage} />
+          ) : (
+            <View style={[styles.gridCardImage, styles.imagePlaceholder]}>
+              <Image source={getCategoryIcon(item.category)} style={styles.placeholderIcon} />
+            </View>
+          )}
+          <View style={styles.categoryIconBadge}>
+            <Image source={getCategoryIcon(item.category)} style={styles.categoryIconImage} />
           </View>
-        )}
-        <View style={styles.categoryIconBadge}>
-          <Image source={getCategoryIcon(item.category)} style={styles.categoryIconImage} />
+          <View style={styles.ratingBadgeImg}>
+            <Text style={styles.ratingTextImg}>{(item.rating || 5.0).toFixed(1)} ★</Text>
+          </View>
         </View>
-        <View style={styles.ratingBadgeImg}>
-          <Text style={styles.ratingTextImg}>{(item.rating || 5.0).toFixed(1)} ★</Text>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
+          {item.description ? (
+            <Text style={styles.cardDescription} numberOfLines={2}>{item.description}</Text>
+          ) : null}
+          <View style={styles.priceCartRow}>
+            <Text style={styles.priceText}>₹{item.price?.toFixed(0)}</Text>
+            <TouchableOpacity
+              style={styles.cartIconBtn}
+              onPress={(e) => {
+                e.stopPropagation();
+                addToCart(menuItem);
+              }}
+            >
+              <Image source={require('../../assets/cart.png')} style={styles.cartIconImg} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-        {item.description ? (
-          <Text style={styles.cardDescription} numberOfLines={2}>{item.description}</Text>
-        ) : null}
-        <View style={styles.priceCartRow}>
-          <Text style={styles.priceText}>₹{item.price?.toFixed(0)}</Text>
-          <TouchableOpacity style={styles.cartIconBtn} onPress={() => handleAddToCart(item)}>
-            <Image source={require('../../assets/cart.png')} style={styles.cartIconImg} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -120,16 +187,39 @@ export default function RecommendationsScreen() {
 
       <View style={styles.contentContainer}>
         {loading ? (
-          <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 60 }} />
+          <FavoritesSkeleton count={6} />
         ) : items.length === 0 ? (
           <Text style={styles.emptyText}>No recommendations available.</Text>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => fetchItems(true, 1)}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+            onScroll={({ nativeEvent }) => {
+              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+              const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 120;
+              if (isCloseToBottom) {
+                handleLoadMore();
+              }
+            }}
+            scrollEventThrottle={16}
+          >
             <Text style={styles.subtitle}>Dishes recommended{'\n'}by our top chefs.</Text>
 
             {/* Featured Item */}
             {featuredItem && (
-              <View style={styles.featuredContainer}>
+              <TouchableOpacity
+                style={styles.featuredContainer}
+                activeOpacity={0.88}
+                onPress={() => (navigation as any).navigate('FoodDetails', { item: normalizeMenuItem(featuredItem) })}
+              >
                 <View style={styles.featuredImageWrapper}>
                   {featuredItem.image ? (
                     <Image source={{ uri: featuredItem.image }} style={styles.featuredImage} />
@@ -149,33 +239,43 @@ export default function RecommendationsScreen() {
                   <View style={styles.newProductBadge}>
                     <Text style={styles.newProductText}>Chef's Pick</Text>
                   </View>
-                  <Text style={styles.featuredTitle}>{featuredItem.name}</Text>
-                  {featuredItem.description ? (
-                    <Text style={styles.featuredDescription} numberOfLines={2}>{featuredItem.description}</Text>
-                  ) : null}
+                  <Text style={styles.featuredTitle} numberOfLines={1}>{featuredItem.name}</Text>
+                  <Text style={styles.featuredDescription} numberOfLines={2}>{featuredItem.description}</Text>
                   <View style={styles.priceCartRow}>
-                    <Text style={styles.priceText}>₹{featuredItem.price?.toFixed(0)}</Text>
+                    <Text style={styles.priceText}>₹{(featuredItem.price || 0).toFixed(0)}</Text>
                     <View style={styles.qtyControlSmall}>
-                      <TouchableOpacity onPress={() => updateQty(featuredItem.id || featuredItem._id, -1)}>
+                      <TouchableOpacity onPress={(e) => { e.stopPropagation(); updateQty(featuredItem.id || featuredItem._id, -1); }}>
                         <View style={styles.qtyBtnSmall}><Text style={styles.qtyBtnTextSmall}>-</Text></View>
                       </TouchableOpacity>
                       <Text style={styles.qtyTextSmall}>{getQty(featuredItem.id || featuredItem._id)}</Text>
-                      <TouchableOpacity onPress={() => updateQty(featuredItem.id || featuredItem._id, 1)}>
+                      <TouchableOpacity onPress={(e) => { e.stopPropagation(); updateQty(featuredItem.id || featuredItem._id, 1); }}>
                         <View style={styles.qtyBtnSmall}><Text style={styles.qtyBtnTextSmall}>+</Text></View>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.cartBtnSmall} onPress={() => handleAddToCart(featuredItem)}>
+                      <TouchableOpacity
+                        style={styles.cartBtnSmall}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(featuredItem);
+                        }}
+                      >
                         <Image source={require('../../assets/cart.png')} style={styles.cartIconImg} />
                       </TouchableOpacity>
                     </View>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
 
             {/* Grid */}
             <View style={styles.gridContainer}>
               {gridItems.map(renderGridCard)}
             </View>
+            {loadingMore && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 10 }}>
+                <FavoriteCardSkeleton />
+                <FavoriteCardSkeleton />
+              </View>
+            )}
           </ScrollView>
         )}
       </View>

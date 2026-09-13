@@ -581,3 +581,220 @@ export function SparkleIcon({ size = 16, color = '#F59E0B' }: IconProps) {
   );
 }
 
+/** ✏️ Clean Edit/Pencil Vector Icon */
+export function EditIcon({ size = 18, color = '#FFFFFF' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Pencil barrel */}
+      <View
+        style={{
+          width: size * 0.32,
+          height: size * 0.62,
+          borderWidth: 1.6,
+          borderColor: color,
+          borderRadius: 2,
+          transform: [{ rotate: '45deg' }],
+        }}
+      />
+      {/* Bottom line representing the written surface */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: size * 0.1,
+          left: size * 0.15,
+          right: size * 0.15,
+          height: 1.8,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+    </View>
+  );
+}
+
+/** 🗑️ Clean Trash/Delete Can Vector Icon */
+export function TrashIcon({ size = 18, color = '#EF4444' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Lid handle */}
+      <View
+        style={{
+          width: size * 0.28,
+          height: 2,
+          backgroundColor: color,
+          borderTopLeftRadius: 1,
+          borderTopRightRadius: 1,
+          marginBottom: 1,
+        }}
+      />
+      {/* Lid top rim */}
+      <View
+        style={{
+          width: size * 0.72,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 1,
+          marginBottom: 2,
+        }}
+      />
+      {/* Bin Body */}
+      <View
+        style={{
+          width: size * 0.54,
+          height: size * 0.54,
+          borderWidth: 1.6,
+          borderColor: color,
+          borderTopWidth: 0,
+          borderBottomLeftRadius: 3,
+          borderBottomRightRadius: 3,
+          flexDirection: 'row',
+          justifyContent: 'space-evenly',
+          alignItems: 'center',
+          paddingVertical: 2,
+        }}
+      >
+        <View style={{ width: 1.2, height: '70%', backgroundColor: color }} />
+        <View style={{ width: 1.2, height: '70%', backgroundColor: color }} />
+      </View>
+    </View>
+  );
+}
+
+/** ℹ️ Clean Info Circle Vector Icon */
+export function InfoCircleIcon({ size = 20, color = '#3B82F6' }: IconProps) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 2,
+        borderColor: color,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <View
+        style={{
+          width: 2.2,
+          height: 2.2,
+          borderRadius: 1.1,
+          backgroundColor: color,
+          marginBottom: 2,
+        }}
+      />
+      <View
+        style={{
+          width: 2.2,
+          height: size * 0.35,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+    </View>
+  );
+}
+
+/** 🔔 Notification Bell Icon */
+export function BellRingIcon({ size = 20, color = '#FFFFFF' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.55,
+          height: size * 0.55,
+          borderTopLeftRadius: size * 0.28,
+          borderTopRightRadius: size * 0.28,
+          borderWidth: 1.8,
+          borderColor: color,
+          borderBottomWidth: 0,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.75,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.2,
+          height: 2.5,
+          backgroundColor: color,
+          borderBottomLeftRadius: 2,
+          borderBottomRightRadius: 2,
+          marginTop: 1,
+        }}
+      />
+    </View>
+  );
+}
+
+/** 💬 Clean Chat Bubble Vector Icon */
+export function ChatBubbleIcon({ size = 20, color = '#FFFFFF' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Main oval bubble */}
+      <View
+        style={{
+          width: size * 0.82,
+          height: size * 0.62,
+          borderRadius: size * 0.24,
+          borderWidth: 1.8,
+          borderColor: color,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 2.5 }}>
+          <View style={{ width: 2.5, height: 2.5, borderRadius: 1.25, backgroundColor: color }} />
+          <View style={{ width: 2.5, height: 2.5, borderRadius: 1.25, backgroundColor: color }} />
+          <View style={{ width: 2.5, height: 2.5, borderRadius: 1.25, backgroundColor: color }} />
+        </View>
+      </View>
+      {/* Little tail on bottom-left */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: size * 0.12,
+          left: size * 0.2,
+          width: size * 0.22,
+          height: size * 0.18,
+          backgroundColor: color,
+          borderBottomLeftRadius: size * 0.15,
+          transform: [{ rotate: '-35deg' }],
+        }}
+      />
+    </View>
+  );
+}
+
+/** ✈️ Clean Send / Paper Airplane Vector Icon */
+export function SendIcon({ size = 18, color = '#FFFFFF' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.6,
+          height: size * 0.6,
+          borderRightWidth: 2.2,
+          borderTopWidth: 2.2,
+          borderColor: color,
+          transform: [{ rotate: '45deg' }, { translateY: size * 0.05 }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          width: 2.2,
+          height: size * 0.65,
+          backgroundColor: color,
+          transform: [{ translateY: size * 0.05 }],
+        }}
+      />
+    </View>
+  );
+}
+export * from './DeliveryIcons';

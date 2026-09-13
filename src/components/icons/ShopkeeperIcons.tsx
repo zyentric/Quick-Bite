@@ -198,3 +198,58 @@ export function RevenueStatsIcon({ size = 20, color = '#FFFFFF' }: IconProps) {
     </View>
   );
 }
+
+/** 🟢 FSSAI Standard Veg Indicator */
+export function VegIcon({ size = 14 }: { size?: number }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderWidth: 1.5,
+        borderColor: '#16A34A',
+        borderRadius: 3,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+      }}
+    >
+      <View
+        style={{
+          width: size * 0.45,
+          height: size * 0.45,
+          backgroundColor: '#16A34A',
+          borderRadius: (size * 0.45) / 2,
+        }}
+      />
+    </View>
+  );
+}
+
+/** 🔴 FSSAI Standard Non-Veg Indicator */
+export function NonVegIcon({ size = 14 }: { size?: number }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderWidth: 1.5,
+        borderColor: '#DC2626',
+        borderRadius: 3,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+      }}
+    >
+      <View
+        style={{
+          width: size * 0.45,
+          height: size * 0.45,
+          backgroundColor: '#DC2626',
+          borderRadius: (size * 0.45) / 2,
+        }}
+      />
+    </View>
+  );
+}
+
