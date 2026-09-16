@@ -61,12 +61,12 @@ export default function DeliveryHeader({
             onPress={onOpenProfile}
             activeOpacity={0.8}
           >
-            <DeliveryBikeIcon size={26} color="#FFFFFF" />
+            <DeliveryBikeIcon size={26} color="#FFC72C" />
           </TouchableOpacity>
 
           <View style={styles.infoCol}>
             <View style={styles.partnerBadgeRow}>
-              <Text style={styles.partnerLabel}>QuickBite Hero</Text>
+              <Text style={styles.partnerLabel}>QuickBite Delivery Hero</Text>
               <View style={[styles.kycTag, { backgroundColor: kyc.bg }]}>
                 <ShieldCheckIcon size={12} color={kyc.color} />
                 <Text style={[styles.kycTagText, { color: kyc.color }]}>{kyc.text}</Text>
@@ -156,7 +156,7 @@ export default function DeliveryHeader({
 const getStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     header: {
-      backgroundColor: colors.primary,
+      backgroundColor: '#1E1B18', // Deep Charcoal Brand
       borderBottomLeftRadius: 32,
       borderBottomRightRadius: 32,
       paddingHorizontal: 18,
@@ -164,7 +164,7 @@ const getStyles = (colors: ThemeColors) =>
       paddingBottom: 22,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.22,
+      shadowOpacity: 0.25,
       shadowRadius: 12,
       elevation: 8,
     },
@@ -187,9 +187,9 @@ const getStyles = (colors: ThemeColors) =>
       width: 52,
       height: 52,
       borderRadius: 26,
-      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+      backgroundColor: 'rgba(255, 199, 44, 0.18)',
       borderWidth: 2,
-      borderColor: '#FFFFFF',
+      borderColor: '#FFC72C',
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 12,
@@ -202,7 +202,7 @@ const getStyles = (colors: ThemeColors) =>
     },
     partnerLabel: {
       fontSize: 11,
-      color: 'rgba(255, 255, 255, 0.9)',
+      color: '#FFC72C',
       fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: 0.5,

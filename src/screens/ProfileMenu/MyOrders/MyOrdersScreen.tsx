@@ -22,6 +22,7 @@ import { DocumentIcon, LockIcon, FastDeliveryIcon, CheckCircleIcon, CancelCircle
 import { MyOrdersSkeleton, OrderCardSkeleton } from '../../../components/skeleton';
 import AppFooter from '../../../components/common/AppFooter';
 import Icons from '../../../constants/icons';
+import RatingBottomSheet from '../../../components/RatingBottomSheet';
 
 type MyOrdersNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyOrders'>;
 
@@ -182,6 +183,8 @@ export default function MyOrdersScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [ratingSheetVisible, setRatingSheetVisible] = useState<boolean>(false);
+  const [ratingOrder, setRatingOrder] = useState<OrderItem | null>(null);
   const isFirstLoadRef = React.useRef(true);
 
   const fetchOrders = async (isRefresh = false, pageNum = 1) => {
@@ -412,13 +415,10 @@ export default function MyOrdersScreen() {
             <View style={styles.actionButtonGroup}>
               <TouchableOpacity
                 style={styles.reviewBtn}
-                onPress={() =>
-                  navigation.navigate('LeaveReview', {
-                    orderId: order.id,
-                    orderName: order.name,
-                    orderImage: order.image,
-                  })
-                }
+                onPress={() => {
+                  setRatingOrder(order);
+                  setRatingSheetVisible(true);
+                }}
                 activeOpacity={0.8}
               >
                 <Text style={styles.reviewBtnText}>★ Rate & Review</Text>
@@ -586,6 +586,21 @@ export default function MyOrdersScreen() {
           </>
         )}
       </View>
+
+      {/* Rating Bottom Sheet Modal */}
+      {ratingOrder && (
+        <RatingBottomSheet
+          visible={ratingSheetVisible}
+          orderId={ratingOrder.id}
+          orderNumber={ratingOrder.orderNumber}
+          orderName={ratingOrder.name}
+          onClose={() => {
+            setRatingSheetVisible(false);
+            setRatingOrder(null);
+          }}
+          onSuccess={() => fetchOrders(true, 1)}
+        />
+      )}
     </SafeAreaView>
   );
 }

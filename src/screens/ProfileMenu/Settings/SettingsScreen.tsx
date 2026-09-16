@@ -41,8 +41,8 @@ export default function SettingsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+            logout().catch(() => {});
           },
         },
       ]

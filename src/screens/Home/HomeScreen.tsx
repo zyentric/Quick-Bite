@@ -36,6 +36,7 @@ import {
   HomeRecommendations,
   HomeRecentlyViewed,
   HomeTrustBadges,
+  CinemaClosedModal,
 } from '../../components/home';
 import AppFooter from '../../components/common/AppFooter';
 import HomeScreenSkeleton from '../../components/skeleton/HomeScreenSkeleton';
@@ -80,7 +81,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'M
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { role } = useUser();
+  const { role, userProfile } = useUser();
   const { addToCart } = useCart();
   const colors = useThemeColors();
   const styles = getStyles(colors);
@@ -92,6 +93,7 @@ export default function HomeScreen() {
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dismissedClosedModal, setDismissedClosedModal] = useState(false);
 
   // Dynamic greeting based on current local hour
   const getGreeting = () => {
@@ -103,23 +105,85 @@ export default function HomeScreen() {
 
   const { title: greetingTitle, sub: greetingSub } = getGreeting();
 
+  // Haversine distance calculator for real proximity
+  const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c * 10) / 10;
+  };
+
   // Fetch Menu Items and Restaurants from API
   const fetchData = async () => {
     if (role === 'shopkeeper' || role === 'delivery_man') return;
     try {
-      const [menuRes, restRes] = await Promise.all([
+      const userLat = userProfile?.savedAddresses?.[0]?.latitude || 12.9352;
+      const userLng = userProfile?.savedAddresses?.[0]?.longitude || 77.6245;
+
+      const [menuRes, restRes, configRes] = await Promise.all([
         fetch(`${API_URL}/menu-items`),
-        fetch(`${API_URL}/restaurants`),
+        fetch(`${API_URL}/restaurants?latitude=${userLat}&longitude=${userLng}`),
+        fetch(`${API_URL}/system-config`).catch(() => null),
       ]);
+
+      let maxRadiusKm = 10;
+      if (configRes && configRes.ok) {
+        const configData = await configRes.json();
+        if (configData.maxDeliveryRadiusKm) {
+          maxRadiusKm = configData.maxDeliveryRadiusKm;
+        }
+      }
 
       if (menuRes.ok) {
         const menuData = await menuRes.json();
-        setMenuItems(menuData);
+        setMenuItems(Array.isArray(menuData) ? menuData : menuData.items || []);
       }
 
       if (restRes.ok) {
-        const restData = await restRes.json();
-        setRestaurants(restData);
+        const restData: Restaurant[] = await restRes.json();
+
+        const mappedRestaurants = (Array.isArray(restData) ? restData : []).map((r: any, idx) => {
+          let dist = r.distanceKm;
+          if (dist === undefined || dist === null) {
+            if (r.location?.latitude && r.location?.longitude) {
+              dist = calculateDistanceKm(userLat, userLng, r.location.latitude, r.location.longitude);
+            } else {
+              dist = 1.2 + idx * 0.5;
+            }
+          }
+          return {
+            ...r,
+            distanceKm: dist,
+            deliveryTime: dist < 2 ? '15–20 min' : dist < 4 ? '20–30 min' : '30–45 min',
+          };
+        });
+
+        // Filter stores within active delivery radius (10 km default)
+        const withinRadiusStores = mappedRestaurants.filter((r) => (r.distanceKm || 0) <= maxRadiusKm);
+
+        // Sort: Open stores first, then highest rating, then closest distance
+        withinRadiusStores.sort((a, b) => {
+          const aOpen = a.isOpen !== false ? 1 : 0;
+          const bOpen = b.isOpen !== false ? 1 : 0;
+          if (aOpen !== bOpen) return bOpen - aOpen;
+
+          const aDist = a.distanceKm || 0;
+          const bDist = b.distanceKm || 0;
+          if (aDist !== bDist) return aDist - bDist;
+
+          const aRating = a.rating || 4.5;
+          const bRating = b.rating || 4.5;
+          return bRating - aRating;
+        });
+
+        setRestaurants(withinRadiusStores);
       }
     } catch (err) {
       console.error('Error fetching home screen data:', err);
@@ -226,6 +290,9 @@ export default function HomeScreen() {
         tab: cat as string,
       }))
     : DEFAULT_CATEGORIES;
+
+  // Check if all restaurants in the system are currently closed
+  const allRestaurantsClosed = restaurants.length > 0 && restaurants.every((r) => r.isOpen === false);
 
   // Render shopkeeper or delivery partner dashboard if switched role
   if (role === 'shopkeeper') {
@@ -361,10 +428,23 @@ export default function HomeScreen() {
 
           {/* 13. App Footer & Copyright */}
           <AppFooter bottomSpacing={10} />
-
           <View style={{ height: 110 }} />
         </View>
       </ScrollView>
+
+      {/* Full-Screen Dark Vintage Cinema "All Restaurants Closed" Overlay with Skip */}
+      <CinemaClosedModal
+        visible={allRestaurantsClosed && !dismissedClosedModal}
+        onClose={() => setDismissedClosedModal(true)}
+        onBrowseMenu={() => {
+          setDismissedClosedModal(true);
+          navigation.navigate('MainTabs', { screen: 'FoodMenu' });
+        }}
+        onRefreshStatus={() => {
+          setDismissedClosedModal(false);
+          onRefresh();
+        }}
+      />
     </SafeAreaView>
   );
 }

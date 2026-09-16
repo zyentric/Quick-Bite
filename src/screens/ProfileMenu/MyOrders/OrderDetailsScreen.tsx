@@ -32,6 +32,7 @@ import {
 import AppFooter from '../../../components/common/AppFooter';
 import Icons from '../../../constants/icons';
 import OrderDetailsSkeleton from '../../../components/skeleton/OrderDetailsSkeleton';
+import RatingBottomSheet from '../../../components/RatingBottomSheet';
 
 type OrderDetailsNavProp = NativeStackNavigationProp<RootStackParamList, 'OrderDetails'>;
 type OrderDetailsRouteProp = RouteProp<RootStackParamList, 'OrderDetails'>;
@@ -99,6 +100,7 @@ export default function OrderDetailsScreen() {
 
   const [order, setOrder] = useState<CustomerOrderSummary | null>(initialOrder || null);
   const [loading, setLoading] = useState(!initialOrder);
+  const [ratingSheetVisible, setRatingSheetVisible] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -477,13 +479,7 @@ export default function OrderDetailsScreen() {
               <View style={styles.doubleBtnRow}>
                 <TouchableOpacity
                   style={styles.secondaryActionBtn}
-                  onPress={() =>
-                    navigation.navigate('LeaveReview', {
-                      orderId: orderId || order?.id,
-                      orderName: items[0]?.menuItem?.name || 'Your Meal',
-                      orderImage: items[0]?.menuItem?.image || FALLBACK_IMAGE,
-                    })
-                  }
+                  onPress={() => setRatingSheetVisible(true)}
                   activeOpacity={0.8}
                 >
                   <StarIcon size={16} color={colors.primary} />
@@ -515,6 +511,15 @@ export default function OrderDetailsScreen() {
           <AppFooter bottomSpacing={20} />
         </ScrollView>
       </View>
+
+      {/* Rating Bottom Sheet */}
+      <RatingBottomSheet
+        visible={ratingSheetVisible}
+        orderId={orderId || order?.id || order?._id || ''}
+        orderNumber={orderDisplayId.replace('#', '')}
+        orderName={items[0]?.name || items[0]?.menuItem?.name || 'Your Meal'}
+        onClose={() => setRatingSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }

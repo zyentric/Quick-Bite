@@ -29,7 +29,6 @@ import {
   ShopkeeperTabType,
   ShopkeeperCard,
   ShopkeeperOrder,
-  ShopkeeperStoreModal,
   ShopkeeperEmptyState,
 } from '../../components/shopkeeper';
 
@@ -88,12 +87,28 @@ export default function ShopkeeperDashboardScreen() {
   const [activeTab, setActiveTab] = useState<ShopkeeperTabType>('Pending');
   const [activeOrders, setActiveOrders] = useState<ShopkeeperOrder[]>([]);
   const [historyOrders, setHistoryOrders] = useState<ShopkeeperOrder[]>([]);
+  const [myRestaurant, setMyRestaurant] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fetch Real Restaurant Details for this Shopkeeper
+  const fetchMyRestaurant = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await authFetch(`${API_URL}/restaurants/my`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setMyRestaurant(data[0]);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch restaurant info:', e);
+    }
+  };
+
   // Modals
-  const [isStoreModalVisible, setStoreModalVisible] = useState(false);
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
 
   // Alert State
@@ -112,19 +127,14 @@ export default function ShopkeeperDashboardScreen() {
   };
 
   const confirmLogout = async () => {
-    try {
-      setLogoutModalVisible(false);
-      await logout();
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: 'Welcome' }],
-        })
-      );
-    } catch (e) {
-      console.error('Logout error:', e);
-      navigation.navigate('Welcome' as never);
-    }
+    setLogoutModalVisible(false);
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Welcome' }],
+      })
+    );
+    logout().catch((e) => console.error('Logout error:', e));
   };
 
   // Fetch Live Kitchen Orders
@@ -166,7 +176,7 @@ export default function ShopkeeperDashboardScreen() {
 
   const loadAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchActiveOrders(), fetchHistoryOrders()]);
+    await Promise.all([fetchActiveOrders(), fetchHistoryOrders(), fetchMyRestaurant()]);
     setLoading(false);
   };
 
@@ -174,10 +184,6 @@ export default function ShopkeeperDashboardScreen() {
     useCallback(() => {
       loadAllData();
       const onBackPress = () => {
-        if (isStoreModalVisible) {
-          setStoreModalVisible(false);
-          return true;
-        }
         if (isLogoutModalVisible) {
           setLogoutModalVisible(false);
           return true;
@@ -191,12 +197,12 @@ export default function ShopkeeperDashboardScreen() {
       };
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
-    }, [isAuthenticated, isStoreModalVisible, isLogoutModalVisible, alertVisible])
+    }, [isAuthenticated, isLogoutModalVisible, alertVisible])
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchActiveOrders(), fetchHistoryOrders()]);
+    await Promise.all([fetchActiveOrders(), fetchHistoryOrders(), fetchMyRestaurant()]);
     setRefreshing(false);
   }, [isAuthenticated]);
 
@@ -244,8 +250,18 @@ export default function ShopkeeperDashboardScreen() {
 
   // Toggle Store Online/Offline
   const handleToggleStoreStatus = async () => {
-    const nextStatus = !(userProfile?.isOnline ?? true);
+    const currentStatus = myRestaurant?.isOpen ?? userProfile?.isOnline ?? true;
+    const nextStatus = !currentStatus;
     try {
+      if (myRestaurant?.id || (myRestaurant as any)?._id) {
+        const restId = myRestaurant.id || (myRestaurant as any)._id;
+        await authFetch(`${API_URL}/restaurants/${restId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isOpen: nextStatus, isAcceptingOrders: nextStatus }),
+        });
+        setMyRestaurant((prev: any) => (prev ? { ...prev, isOpen: nextStatus, isAcceptingOrders: nextStatus } : null));
+      }
       await authFetch(`${API_URL}/users/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -253,10 +269,10 @@ export default function ShopkeeperDashboardScreen() {
       });
       refreshUserProfile();
       showAlert(
-        nextStatus ? 'Kitchen Open' : 'Kitchen Paused',
+        nextStatus ? 'Kitchen is Live 🟢' : 'Kitchen Paused 🔴',
         nextStatus
-          ? 'Your kitchen is now open and accepting customer orders.'
-          : 'Your kitchen is now paused. No new orders will arrive.'
+          ? 'Your restaurant is now OPEN and accepting live customer orders.'
+          : 'Your restaurant is now CLOSED. No new orders will arrive.'
       );
     } catch (e: any) {
       showAlert('Error', e.message);
@@ -299,15 +315,15 @@ export default function ShopkeeperDashboardScreen() {
 
         {/* Modular Shopkeeper Header */}
         <ShopkeeperHeader
-          storeName={userProfile?.name || 'QuickBite Kitchen'}
-          ownerName={userProfile?.name || 'Mario Owner'}
-          isOpen={userProfile?.isOnline ?? true}
+          storeName={myRestaurant?.name || userProfile?.name || 'QuickBite Kitchen'}
+          ownerName={userProfile?.name || 'Store Owner'}
+          isOpen={myRestaurant?.isOpen ?? userProfile?.isOnline ?? true}
           onToggleStatus={handleToggleStoreStatus}
           newOrdersCount={pendingList.length}
           inKitchenCount={preparingList.length}
           readyCount={readyList.length}
           totalRevenue={totalSales}
-          onOpenStoreModal={() => setStoreModalVisible(true)}
+          onOpenStoreModal={() => navigation.navigate('RestaurantProfile')}
           onLogoutPress={handleLogoutPress}
         />
 
@@ -348,15 +364,6 @@ export default function ShopkeeperDashboardScreen() {
             ListEmptyComponent={<ShopkeeperEmptyState activeTab={activeTab} />}
           />
         )}
-
-        {/* Store Settings & Operation Modal */}
-        <ShopkeeperStoreModal
-          visible={isStoreModalVisible}
-          onClose={() => setStoreModalVisible(false)}
-          userProfile={userProfile}
-          onProfileUpdated={refreshUserProfile}
-          showAlert={showAlert}
-        />
 
         {/* Logout Confirmation Modal */}
         <Modal

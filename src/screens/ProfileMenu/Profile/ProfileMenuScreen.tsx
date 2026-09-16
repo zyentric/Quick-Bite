@@ -177,19 +177,14 @@ export default function ProfileMenuScreen() {
   };
 
   const confirmLogout = async () => {
-    try {
-      setLogoutModalVisible(false);
-      await logout();
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: 'Welcome' }],
-        })
-      );
-    } catch (e) {
-      console.error('Logout error:', e);
-      navigation.navigate('Welcome');
-    }
+    setLogoutModalVisible(false);
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Welcome' }],
+      })
+    );
+    logout().catch((e) => console.error('Logout error:', e));
   };
 
   const generalItems = [
@@ -240,10 +235,10 @@ export default function ProfileMenuScreen() {
             )}
           </View>
           <Text style={styles.userName} numberOfLines={1}>
-            {profile?.name || (isAuthenticated ? 'Food Lover' : 'Guest User')}
+            {profile?.name || 'Food Lover'}
           </Text>
           <Text style={styles.userSubtitle} numberOfLines={1}>
-            {isAuthenticated ? (profile?.email || 'Ready for good food.') : 'Sign in to explore exclusive perks'}
+            {profile?.email || 'Ready for good food.'}
           </Text>
         </View>
       </View>

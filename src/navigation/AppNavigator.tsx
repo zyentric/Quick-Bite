@@ -47,7 +47,9 @@ import HelpCenterScreen from '../screens/Help/HelpCenterScreen'; // Forced reloa
 import ShopkeeperDashboardScreen from '../screens/Shopkeeper/ShopkeeperDashboardScreen';
 import DeliveryDashboardScreen from '../screens/Home/DeliveryDashboardScreen';
 import DeliveryOrderDetailsScreen from '../screens/Home/DeliveryOrderDetailsScreen';
+import DeliveryProfileScreen from '../screens/Delivery/DeliveryProfileScreen';
 import ShopkeeperOrderDetailsScreen from '../screens/Shopkeeper/ShopkeeperOrderDetailsScreen';
+import RestaurantProfileScreen from '../screens/Shopkeeper/RestaurantProfileScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
 import { useCart } from '../context/CartContext';
 import { useThemeColors } from '../theme/colors';
@@ -152,10 +154,12 @@ export default function AppNavigator() {
         {/* Shopkeeper Screens */}
         <Stack.Screen name="ShopkeeperDashboard" component={ShopkeeperDashboardScreen} />
         <Stack.Screen name="ShopkeeperOrderDetails" component={ShopkeeperOrderDetailsScreen} />
+        <Stack.Screen name="RestaurantProfile" component={RestaurantProfileScreen} />
 
         {/* Delivery Man Screens */}
         <Stack.Screen name="DeliveryDashboard" component={DeliveryDashboardScreen} />
         <Stack.Screen name="DeliveryOrderDetails" component={DeliveryOrderDetailsScreen} />
+        <Stack.Screen name="DeliveryProfile" component={DeliveryProfileScreen} />
 
         {/* In-App Live Order Chat */}
         <Stack.Screen name="Chat" component={ChatScreen} />

@@ -16,6 +16,7 @@ import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
 import Icons from '../../constants/icons';
 import { APP_VERSION } from '../../constants/appConfig';
+import { UserIcon, StoreIcon, BikeIcon, CheckIcon } from '../../components/VectorIcons';
 
 const { width } = Dimensions.get('window');
 
@@ -23,20 +24,26 @@ type WelcomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList,
 
 const FEATURES = [
   {
-    tag: 'EXPRESS',
-    title: '20-Min Fast Delivery',
-    desc: 'Hot & fresh food delivered to your door in minutes',
+    tag: '10 KM LOCAL',
+    title: 'Local Proximity Fast Delivery',
+    desc: 'Hot & fresh food delivered within a strict 10 km hyper-local range in minutes',
   },
   {
-    tag: 'CURATED',
-    title: '500+ Top Restaurants',
-    desc: 'Handpicked local kitchens and authentic cuisines',
+    tag: 'LIVE SYNC',
+    title: 'Real-Time Kitchen & Rider Tracking',
+    desc: 'Live WebSocket sync between you, the restaurant kitchen, and delivery partner',
   },
   {
-    tag: 'OFFERS',
-    title: 'Daily Deals & Discounts',
-    desc: 'Exclusive savings on your favorite daily meals',
+    tag: 'VERIFIED',
+    title: 'Top Rated Kitchens & Menus',
+    desc: 'Handpicked local restaurants, gourmet cuisines, and verified safety standards',
   },
+];
+
+const ROLES_INFO = [
+  { title: 'Foodies', subtitle: 'Browse & Order', icon: 'customer' },
+  { title: 'Kitchens', subtitle: 'Accept Orders', icon: 'shopkeeper' },
+  { title: 'Riders', subtitle: 'Earn & Deliver', icon: 'delivery' },
 ];
 
 export default function WelcomeScreen() {
@@ -46,9 +53,9 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A120B" />
+      <StatusBar barStyle="light-content" backgroundColor="#150E08" />
 
-      {/* Ambient Lighting Background Accents */}
+      {/* Ambient Radial Lighting Glow Accents */}
       <View style={styles.glowCircleTop} />
       <View style={styles.glowCircleBottom} />
 
@@ -58,9 +65,11 @@ export default function WelcomeScreen() {
       >
         {/* Brand Hero Badge */}
         <View style={styles.heroSection}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoInnerRing}>
-              <Image source={Icons.logo} style={styles.logoImage} />
+          <View style={styles.logoWrapper}>
+            <View style={styles.logoGlowRing}>
+              <View style={styles.logoContainer}>
+                <Image source={Icons.logo} style={styles.logoImage} />
+              </View>
             </View>
           </View>
 
@@ -69,13 +78,36 @@ export default function WelcomeScreen() {
             <Text style={styles.brandBite}>Bite</Text>
           </View>
 
-          <Text style={styles.brandTagline}>FAST • FRESH • DELIVERED</Text>
+          <Text style={styles.brandTagline}>HYPER-LOCAL • FRESH • 10 KM RANGE</Text>
 
           {/* Social Proof Trust Badge */}
           <View style={styles.trustBadge}>
-            <Text style={styles.trustStar}>★</Text>
-            <Text style={styles.trustText}>4.9 Rating • 500+ Happy Foodies</Text>
+            <View style={styles.trustStarBadge}>
+              <CheckIcon color="#10B981" size={14} />
+            </View>
+            <Text style={styles.trustText}>4.9 Star Rated • 10,000+ Local Meals Delivered</Text>
           </View>
+        </View>
+
+        {/* Roles Quick Pill Bar */}
+        <View style={styles.rolesBar}>
+          {ROLES_INFO.map((r, i) => (
+            <View key={i} style={styles.roleCardPill}>
+              <View style={styles.roleIconWrapper}>
+                {r.icon === 'customer' ? (
+                  <UserIcon color="#F7C653" size={16} />
+                ) : r.icon === 'shopkeeper' ? (
+                  <StoreIcon color="#F7C653" size={16} />
+                ) : (
+                  <BikeIcon color="#F7C653" size={16} />
+                )}
+              </View>
+              <View style={styles.roleTextCol}>
+                <Text style={styles.roleTitle}>{r.title}</Text>
+                <Text style={styles.roleSub}>{r.subtitle}</Text>
+              </View>
+            </View>
+          ))}
         </View>
 
         {/* Feature Highlights Grid */}
@@ -116,14 +148,14 @@ export default function WelcomeScreen() {
             onPress={() => navigation.replace('MainTabs')}
             activeOpacity={0.7}
           >
-            <Text style={styles.guestButtonText}>Continue as Guest →</Text>
+            <Text style={styles.guestButtonText}>Explore Menu as Guest →</Text>
           </TouchableOpacity>
         </View>
 
         {/* App Version Footer */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version {APP_VERSION}</Text>
-          <Text style={styles.versionSubtext}>QuickBite Technologies</Text>
+          <Text style={styles.versionText}>QuickBite App v{APP_VERSION}</Text>
+          <Text style={styles.versionSubtext}>Hyper-Local Food Logistics Platform</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -134,62 +166,63 @@ const getStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#1A120B', // Deep Charcoal Brand Theme
+      backgroundColor: '#150E08', // Premium Deep Espresso Charcoal
     },
     glowCircleTop: {
       position: 'absolute',
-      top: -80,
-      right: -80,
-      width: 260,
-      height: 260,
-      borderRadius: 130,
+      top: -90,
+      right: -90,
+      width: 280,
+      height: 280,
+      borderRadius: 140,
       backgroundColor: 'rgba(232, 93, 34, 0.22)',
     },
     glowCircleBottom: {
       position: 'absolute',
-      bottom: -100,
-      left: -100,
-      width: 320,
-      height: 320,
-      borderRadius: 160,
+      bottom: -110,
+      left: -110,
+      width: 340,
+      height: 340,
+      borderRadius: 170,
       backgroundColor: 'rgba(247, 198, 83, 0.12)',
     },
     scrollContent: {
-      paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 36,
+      paddingHorizontal: 22,
+      paddingTop: 16,
+      paddingBottom: 32,
       alignItems: 'center',
     },
     heroSection: {
       alignItems: 'center',
-      marginBottom: 24,
+      marginBottom: 20,
       width: '100%',
+    },
+    logoWrapper: {
+      marginBottom: 14,
+    },
+    logoGlowRing: {
+      padding: 6,
+      borderRadius: 36,
+      backgroundColor: 'rgba(247, 198, 83, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(247, 198, 83, 0.25)',
     },
     logoContainer: {
-      width: 120,
-      height: 120,
-      borderRadius: 32,
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      borderWidth: 1.5,
-      borderColor: 'rgba(247, 198, 83, 0.35)',
+      width: 100,
+      height: 100,
+      borderRadius: 28,
+      backgroundColor: '#FFFFFF',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 16,
       shadowColor: '#E85D22',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 14,
-    },
-    logoInnerRing: {
-      width: 104,
-      height: 104,
-      borderRadius: 26,
-      justifyContent: 'center',
-      alignItems: 'center',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      elevation: 8,
     },
     logoImage: {
-      width: '100%',
-      height: '100%',
+      width: 76,
+      height: 76,
       resizeMode: 'contain',
     },
     brandTitleRow: {
@@ -200,7 +233,7 @@ const getStyles = (colors: ThemeColors) =>
     brandQuick: {
       fontSize: 34,
       fontWeight: '900',
-      color: '#F7C653', // Brand Gold
+      color: '#F7C653',
       letterSpacing: 0.5,
     },
     brandBite: {
@@ -210,36 +243,79 @@ const getStyles = (colors: ThemeColors) =>
       letterSpacing: 0.5,
     },
     brandTagline: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '800',
-      color: 'rgba(255, 255, 255, 0.7)',
+      color: 'rgba(255, 255, 255, 0.75)',
       letterSpacing: 2,
-      marginBottom: 14,
+      marginBottom: 12,
     },
     trustBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
       paddingHorizontal: 14,
       paddingVertical: 6,
       borderRadius: 20,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.15)',
+      borderColor: 'rgba(255, 255, 255, 0.14)',
+      gap: 8,
     },
-    trustStar: {
-      fontSize: 13,
-      color: '#F7C653',
-      marginRight: 6,
+    trustStarBadge: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: 'rgba(16, 185, 129, 0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     trustText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
       color: '#FFFFFF',
+    },
+    rolesBar: {
+      flexDirection: 'row',
+      width: '100%',
+      gap: 8,
+      marginBottom: 18,
+    },
+    roleCardPill: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+      paddingVertical: 8,
+      paddingHorizontal: 8,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    roleIconWrapper: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      backgroundColor: 'rgba(247, 198, 83, 0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    roleTextCol: {
+      flex: 1,
+    },
+    roleTitle: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    roleSub: {
+      fontSize: 9,
+      color: 'rgba(255, 255, 255, 0.65)',
+      fontWeight: '600',
     },
     featuresSection: {
       width: '100%',
       gap: 10,
-      marginBottom: 28,
+      marginBottom: 24,
     },
     featureCard: {
       backgroundColor: 'rgba(255, 255, 255, 0.06)',
@@ -269,14 +345,14 @@ const getStyles = (colors: ThemeColors) =>
       letterSpacing: 0.5,
     },
     featureCardTitle: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '800',
       color: '#FFFFFF',
       flex: 1,
     },
     featureCardDesc: {
       fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.75)',
+      color: 'rgba(255, 255, 255, 0.72)',
       lineHeight: 17,
       marginLeft: 2,
     },
@@ -286,9 +362,9 @@ const getStyles = (colors: ThemeColors) =>
       alignItems: 'center',
     },
     loginButton: {
-      backgroundColor: '#E85D22', // Brand Warm Orange
+      backgroundColor: '#E85D22',
       width: '100%',
-      paddingVertical: 15,
+      paddingVertical: 14,
       borderRadius: 25,
       alignItems: 'center',
       shadowColor: '#E85D22',
@@ -306,7 +382,7 @@ const getStyles = (colors: ThemeColors) =>
     signupButton: {
       backgroundColor: 'rgba(255, 255, 255, 0.12)',
       width: '100%',
-      paddingVertical: 15,
+      paddingVertical: 14,
       borderRadius: 25,
       alignItems: 'center',
       borderWidth: 1.5,
@@ -319,9 +395,9 @@ const getStyles = (colors: ThemeColors) =>
       letterSpacing: 0.3,
     },
     guestButton: {
-      paddingVertical: 10,
+      paddingVertical: 8,
       alignItems: 'center',
-      marginTop: 4,
+      marginTop: 2,
     },
     guestButtonText: {
       color: '#F7C653',
@@ -331,21 +407,21 @@ const getStyles = (colors: ThemeColors) =>
     },
     versionContainer: {
       alignItems: 'center',
-      marginTop: 22,
+      marginTop: 20,
       marginBottom: 6,
     },
     versionText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
       color: 'rgba(255, 255, 255, 0.45)',
-      letterSpacing: 0.8,
+      letterSpacing: 0.6,
     },
     versionSubtext: {
       fontSize: 10,
       fontWeight: '600',
       color: 'rgba(255, 255, 255, 0.25)',
-      letterSpacing: 1.5,
-      marginTop: 3,
+      letterSpacing: 1.2,
+      marginTop: 2,
       textTransform: 'uppercase',
     },
   });

@@ -1,9 +1,22 @@
 export interface Restaurant {
   id: string;
+  _id?: string;
   name: string;
-  cuisine: string;
-  rating: number;
-  image: string;
+  cuisine?: string;
+  rating?: number;
+  image?: string;
+  address?: string;
+  phone?: string;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+  };
+  isOpen?: boolean;
+  isAcceptingOrders?: boolean;
+  distanceKm?: number;
+  deliveryTime?: string;
+  owner?: string | any;
+  menu?: MenuItem[] | any[];
 }
 
 export interface MenuItem {
@@ -11,11 +24,13 @@ export interface MenuItem {
   name: string;
   price: number;
   originalPrice?: number;
+  discountPercent?: number;
   discountBadge?: string;
   description: string;
   image?: string;
   rating?: number;
   category?: string;
+  restaurant?: string | any;
   customizations?: {
     title: string;
     options: { id: string; name: string; price: number }[];
@@ -195,10 +210,12 @@ export type RootStackParamList = {
   // Shopkeeper Specific
   ShopkeeperDashboard: undefined;
   ShopkeeperOrderDetails: { orderId: string };
+  RestaurantProfile: undefined;
 
   // Delivery Man Specific
   DeliveryDashboard: undefined;
   DeliveryOrderDetails: { orderId: string; initialOrder?: any };
+  DeliveryProfile: undefined;
 
   // In-App Chat
   Chat: {

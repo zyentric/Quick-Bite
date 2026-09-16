@@ -29,7 +29,6 @@ import {
   DeliveryTabType,
   DeliveryCard,
   DeliveryOrder,
-  DeliveryProfileModal,
   DeliveryConfirmModal,
   DeliveryEmptyState,
 } from '../../components/delivery';
@@ -49,7 +48,6 @@ export default function DeliveryDashboardScreen() {
 
   // Modals
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
-  const [isProfileModalVisible, setProfileModalVisible] = useState(false);
   const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<DeliveryOrder | null>(null);
   const [isDeliverConfirmModalVisible, setDeliverConfirmModalVisible] = useState(false);
 
@@ -66,7 +64,12 @@ export default function DeliveryDashboardScreen() {
 
   const fetchDeliveries = async () => {
     try {
-      const response = await authFetch(`${API_URL}/orders/pending-delivery`);
+      const riderLat = userProfile?.savedAddresses?.[0]?.latitude || 12.9716;
+      const riderLng = userProfile?.savedAddresses?.[0]?.longitude || 77.5946;
+
+      const response = await authFetch(
+        `${API_URL}/orders/pending-delivery?latitude=${riderLat}&longitude=${riderLng}`
+      );
       const data = await response.json();
       if (!response.ok) {
         showAlert('Error', data.message || 'Failed to fetch deliveries');
@@ -207,9 +210,9 @@ export default function DeliveryDashboardScreen() {
     if (status === 'unverified' || status === 'rejected') {
       showAlert(
         'Verification Required',
-        'Please tap the Profile icon on the top right to submit your vehicle and KYC details for Admin approval.'
+        'Please complete your vehicle and KYC details for Admin approval.'
       );
-      setProfileModalVisible(true);
+      navigation.navigate('DeliveryProfile');
       return;
     }
 
@@ -286,19 +289,14 @@ export default function DeliveryDashboardScreen() {
   };
 
   const confirmLogout = async () => {
-    try {
-      setLogoutModalVisible(false);
-      await logout();
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: 'Welcome' }],
-        })
-      );
-    } catch (e) {
-      console.error('Logout error:', e);
-      navigation.navigate('Welcome' as never);
-    }
+    setLogoutModalVisible(false);
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Welcome' }],
+      })
+    );
+    logout().catch((e) => console.error('Logout error:', e));
   };
 
   // Phone Call Action
@@ -374,8 +372,8 @@ export default function DeliveryDashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <SafeAreaView style={[styles.container, { backgroundColor: '#1E1B18' }]} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E1B18" />
 
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <CustomLoader visible={loading} message="Updating Live Deliveries..." />
@@ -397,7 +395,7 @@ export default function DeliveryDashboardScreen() {
         activeCount={activeOrders.length}
         availableCount={availableOrders.length}
         totalEarnings={totalEarnings}
-        onOpenProfile={() => setProfileModalVisible(true)}
+        onOpenProfile={() => navigation.navigate('DeliveryProfile')}
         onLogoutPress={handleLogoutPress}
       />
 
@@ -433,15 +431,6 @@ export default function DeliveryDashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
         ListEmptyComponent={<DeliveryEmptyState activeTab={activeTab} />}
-      />
-
-      {/* Driver KYC & Document Verification Modal */}
-      <DeliveryProfileModal
-        visible={isProfileModalVisible}
-        onClose={() => setProfileModalVisible(false)}
-        userProfile={userProfile}
-        onProfileUpdated={refreshUserProfile}
-        showAlert={showAlert}
       />
 
       {/* Delivery Confirmation Modal */}
