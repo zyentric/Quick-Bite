@@ -11,6 +11,7 @@ import {
   Dimensions,
   FlatList,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -39,36 +40,25 @@ const getCategoryIcon = (category?: string) => {
   return Icons.meal;
 };
 
-// Default high-quality verified reviews for products
-const DEFAULT_REVIEWS = [
-  {
-    id: 'rev-1',
-    userName: 'Aarav Sharma',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
-    rating: 5,
-    date: 'Yesterday',
-    comment: 'Super fresh, hot, and packed with incredible authentic flavor! Best quality in the area.',
-    verified: true,
-  },
-  {
-    id: 'rev-2',
-    userName: 'Priya Patel',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop',
-    rating: 4.8,
-    date: '3 days ago',
-    comment: 'Perfect portion size and delivered right on time. Highly recommended!',
-    verified: true,
-  },
-  {
-    id: 'rev-3',
-    userName: 'Rohan Gupta',
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=200&auto=format&fit=crop',
-    rating: 5,
-    date: 'Last week',
-    comment: 'Tastes like high-end restaurant food at a very pocket-friendly price.',
-    verified: true,
-  },
-];
+interface ReviewItem {
+  id: string;
+  userName: string;
+  avatar?: string;
+  rating: number;
+  date?: string;
+  comment?: string;
+  tags?: string[];
+  verified?: boolean;
+}
+
+const getInitials = (name?: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
 
 export default function FoodDetailsScreen() {
   const navigation = useNavigation<FoodDetailsNavigationProp>();
@@ -88,12 +78,62 @@ export default function FoodDetailsScreen() {
   const [relatedItems, setRelatedItems] = useState<MenuItem[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
 
+  // Dynamic Reviews & Ratings state
+  const restaurantId =
+    typeof (item as any)?.restaurant === 'string'
+      ? (item as any).restaurant
+      : (item as any)?.restaurant?._id || (item as any)?.restaurant?.id || '';
+
+  const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+
   const [showAddedToast, setShowAddedToast] = useState(false);
   const [showFavToast, setShowFavToast] = useState(false);
   const [favToastMsg, setFavToastMsg] = useState('');
   const toastAnim = useState(new Animated.Value(0))[0];
   const favToastAnim = useState(new Animated.Value(0))[0];
   const favScaleAnim = useState(new Animated.Value(1))[0];
+
+  // Fetch Live Reviews from Backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchReviews = async () => {
+      if (!restaurantId) return;
+      setLoadingReviews(true);
+      try {
+        const res = await fetch(`${API_URL}/reviews/restaurant/${restaurantId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data && Array.isArray(data.reviews)) {
+            const mapped: ReviewItem[] = data.reviews.map((r: any) => ({
+              id: r.id || r._id || Math.random().toString(),
+              userName: r.user?.name || 'QuickBite Foodie',
+              avatar: r.user?.profilePicture,
+              rating: Number(r.rating) || 5,
+              date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recent',
+              comment: r.feedback || '',
+              tags: r.tags || [],
+              verified: true,
+            }));
+            setReviewsList(mapped);
+            if (typeof data.averageRating === 'number' && data.averageRating > 0) {
+              setAvgRating(data.averageRating);
+            }
+          }
+        }
+      } catch (err) {
+        console.log('Error fetching live reviews:', err);
+      } finally {
+        if (isMounted) setLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+    return () => {
+      isMounted = false;
+    };
+  }, [restaurantId]);
 
   useEffect(() => {
     if (item) {
@@ -294,12 +334,40 @@ export default function FoodDetailsScreen() {
   const isVeg = !isNonVeg;
 
   const discountPercent =
-    item.originalPrice && item.originalPrice > item.price
+    item.discountPercent ||
+    (item.originalPrice && item.originalPrice > item.price
       ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-      : 0;
+      : 0);
 
-  const ratingScore = item.rating || 4.8;
-  const ratingCount = Math.floor(180 + ((item.price * 7) % 320));
+  const ratingScore =
+    avgRating ||
+    item.rating ||
+    (reviewsList.length > 0
+      ? reviewsList.reduce((acc, r) => acc + r.rating, 0) / reviewsList.length
+      : 4.8);
+  const ratingCount =
+    reviewsList.length > 0 ? reviewsList.length : Math.floor(180 + ((item.price * 7) % 320));
+
+  const starBreakdown = useMemo(() => {
+    if (reviewsList.length === 0) {
+      return [
+        { star: '5★', pct: '80%', count: 0 },
+        { star: '4★', pct: '15%', count: 0 },
+        { star: '3★', pct: '3%', count: 0 },
+        { star: '2★', pct: '1%', count: 0 },
+        { star: '1★', pct: '1%', count: 0 },
+      ];
+    }
+    return [5, 4, 3, 2, 1].map((starNum) => {
+      const count = reviewsList.filter((r) => Math.round(r.rating) === starNum).length;
+      const pct = Math.round((count / reviewsList.length) * 100);
+      return {
+        star: `${starNum}★`,
+        pct: `${pct}%`,
+        count,
+      };
+    });
+  }, [reviewsList]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -354,7 +422,7 @@ export default function FoodDetailsScreen() {
               {discountPercent > 0 ? (
                 <View style={styles.discountBadge}>
                   <PercentIcon size={12} color="#FFFFFF" />
-                  <Text style={styles.discountBadgeText}> {discountPercent}% OFF</Text>
+                  <Text style={styles.discountBadgeText}> {item.discountBadge || `${discountPercent}% OFF`}</Text>
                 </View>
               ) : item.discountBadge ? (
                 <View style={styles.discountBadge}>
@@ -584,62 +652,100 @@ export default function FoodDetailsScreen() {
               </View>
             </View>
 
-            {/* Rating Breakdown Bar */}
-            <View style={styles.ratingBreakdownCard}>
-              <View style={styles.ratingScoreBigWrap}>
-                <Text style={styles.ratingScoreBig}>{ratingScore.toFixed(1)}</Text>
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <StarIcon key={s} size={13} color="#F59E0B" />
-                  ))}
-                </View>
-                <Text style={styles.ratingTotalSub}>{ratingCount} ratings</Text>
+            {loadingReviews ? (
+              <View style={styles.reviewsLoadingWrap}>
+                <ActivityIndicator size="small" color={colors.primary} />
               </View>
-
-              <View style={styles.ratingBarsCol}>
-                {[
-                  { star: '5★', pct: '78%' },
-                  { star: '4★', pct: '16%' },
-                  { star: '3★', pct: '4%' },
-                  { star: '2★', pct: '1%' },
-                  { star: '1★', pct: '1%' },
-                ].map((bar, idx) => (
-                  <View key={idx} style={styles.ratingBarRow}>
-                    <Text style={styles.ratingBarLabel}>{bar.star}</Text>
-                    <View style={styles.ratingBarTrack}>
-                      <View style={[styles.ratingBarFill, { width: bar.pct as any }]} />
+            ) : reviewsList.length > 0 ? (
+              <>
+                {/* Rating Breakdown Bar */}
+                <View style={styles.ratingBreakdownCard}>
+                  <View style={styles.ratingScoreBigWrap}>
+                    <Text style={styles.ratingScoreBig}>{ratingScore.toFixed(1)}</Text>
+                    <View style={styles.starsRow}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <StarIcon
+                          key={s}
+                          size={13}
+                          color={ratingScore >= s ? '#F59E0B' : '#E5E7EB'}
+                        />
+                      ))}
                     </View>
-                    <Text style={styles.ratingBarPct}>{bar.pct}</Text>
+                    <Text style={styles.ratingTotalSub}>
+                      {reviewsList.length} {reviewsList.length === 1 ? 'verified review' : 'verified reviews'}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            </View>
 
-            {/* Individual Reviews List */}
-            {DEFAULT_REVIEWS.map((rev) => (
-              <View key={rev.id} style={styles.reviewCard}>
-                <View style={styles.reviewCardHeader}>
-                  <Image source={{ uri: rev.avatar }} style={styles.reviewerAvatar} />
-                  <View style={styles.reviewerInfo}>
-                    <View style={styles.reviewerNameRow}>
-                      <Text style={styles.reviewerName}>{rev.userName}</Text>
-                      {rev.verified && (
-                        <View style={styles.verifiedPill}>
-                          <Text style={styles.verifiedText}>✓ Verified</Text>
+                  <View style={styles.ratingBarsCol}>
+                    {starBreakdown.map((bar, idx) => (
+                      <View key={idx} style={styles.ratingBarRow}>
+                        <Text style={styles.ratingBarLabel}>{bar.star}</Text>
+                        <View style={styles.ratingBarTrack}>
+                          <View style={[styles.ratingBarFill, { width: bar.pct as any }]} />
+                        </View>
+                        <Text style={styles.ratingBarPct}>{bar.pct}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Individual Reviews List */}
+                {reviewsList.map((rev) => (
+                  <View key={rev.id} style={styles.reviewCard}>
+                    <View style={styles.reviewCardHeader}>
+                      {rev.avatar ? (
+                        <Image source={{ uri: rev.avatar }} style={styles.reviewerAvatar} />
+                      ) : (
+                        <View style={styles.reviewerAvatarPlaceholder}>
+                          <Text style={styles.reviewerAvatarInitial}>
+                            {getInitials(rev.userName)}
+                          </Text>
                         </View>
                       )}
-                    </View>
-                    <Text style={styles.reviewDate}>{rev.date}</Text>
-                  </View>
+                      <View style={styles.reviewerInfo}>
+                        <View style={styles.reviewerNameRow}>
+                          <Text style={styles.reviewerName}>{rev.userName}</Text>
+                          {rev.verified && (
+                            <View style={styles.verifiedPill}>
+                              <Text style={styles.verifiedText}>✓ Verified</Text>
+                            </View>
+                          )}
+                        </View>
+                        {rev.date ? <Text style={styles.reviewDate}>{rev.date}</Text> : null}
+                      </View>
 
-                  <View style={styles.reviewStarPill}>
-                    <StarIcon size={11} color="#FFFFFF" />
-                    <Text style={styles.reviewStarPillText}> {rev.rating}</Text>
+                      <View style={styles.reviewStarPill}>
+                        <StarIcon size={11} color="#FFFFFF" />
+                        <Text style={styles.reviewStarPillText}> {rev.rating}</Text>
+                      </View>
+                    </View>
+
+                    {rev.comment ? (
+                      <Text style={styles.reviewComment}>{rev.comment}</Text>
+                    ) : null}
+
+                    {rev.tags && rev.tags.length > 0 && (
+                      <View style={styles.reviewTagsRow}>
+                        {rev.tags.map((tag, tIdx) => (
+                          <View key={tIdx} style={styles.reviewTagBadge}>
+                            <Text style={styles.reviewTagText}>{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </View>
-                </View>
-                <Text style={styles.reviewComment}>{rev.comment}</Text>
+                ))}
+              </>
+            ) : (
+              /* Clean Empty State */
+              <View style={styles.emptyReviewsCard}>
+                <Text style={styles.emptyReviewsIcon}>⭐</Text>
+                <Text style={styles.emptyReviewsTitle}>No Reviews Yet</Text>
+                <Text style={styles.emptyReviewsDesc}>
+                  Be the first customer to order and share your authentic rating & review after delivery!
+                </Text>
               </View>
-            ))}
+            )}
           </View>
 
           {/* 9. Related / Suggested Products Section */}
@@ -1422,6 +1528,69 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 12,
       color: colors.text,
       lineHeight: 18,
+    },
+    reviewerAvatarPlaceholder: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: '#FEF3C7',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    reviewerAvatarInitial: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#D97706',
+    },
+    reviewTagsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 8,
+    },
+    reviewTagBadge: {
+      backgroundColor: '#F3F4F6',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    reviewTagText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: colors.textMuted,
+    },
+    emptyReviewsCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: '#F3F4F6',
+      marginTop: 4,
+    },
+    emptyReviewsIcon: {
+      fontSize: 28,
+      marginBottom: 6,
+    },
+    emptyReviewsTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    emptyReviewsDesc: {
+      fontSize: 12,
+      color: colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 18,
+      maxWidth: 240,
+    },
+    reviewsLoadingWrap: {
+      paddingVertical: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     relatedSection: {
       marginTop: 10,

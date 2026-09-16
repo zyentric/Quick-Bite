@@ -88,18 +88,17 @@ export function LockIcon({ color = '#999', size = 18 }: { color?: string; size?:
   );
 }
 
-export function FingerprintIcon({ color = '#F2B824', size = 80 }) {
+export function FingerprintIcon({ color = '#E85D22', size = 32 }: { color?: string; size?: number }) {
   return (
-    <View style={[styles.fingerprintContainer, { width: size, height: size * 1.2 }]}>
-      {/* Outer loop */}
-      <View style={[styles.fingerprintLoop, { width: size, height: size, borderRadius: size / 2, borderColor: color, borderBottomWidth: 0 }]} />
-      {/* Mid loop */}
-      <View style={[styles.fingerprintLoop, { width: size * 0.75, height: size * 0.75, borderRadius: (size * 0.75) / 2, borderColor: color, borderBottomWidth: 0, position: 'absolute', top: size * 0.125 }]} />
-      {/* Inner loop */}
-      <View style={[styles.fingerprintLoop, { width: size * 0.5, height: size * 0.5, borderRadius: (size * 0.5) / 2, borderColor: color, borderBottomWidth: 0, position: 'absolute', top: size * 0.25 }]} />
-      {/* Center line */}
-      <View style={[styles.fingerprintCenter, { height: size * 0.4, width: 4, backgroundColor: color, position: 'absolute', bottom: size * 0.15, borderRadius: 2 }]} />
-    </View>
+    <Image
+      source={Icons.fingerprint}
+      style={{
+        width: size,
+        height: size,
+        tintColor: color,
+        resizeMode: 'contain',
+      }}
+    />
   );
 }
 
@@ -642,4 +641,136 @@ export function HelpIcon({ color = '#666', size = 24 }) {
   );
 }
 
+export function StoreIcon({ color = '#666', size = 20 }: { color?: string; size?: number }) {
+  const roofHeight = size * 0.35;
+  const bodyHeight = size * 0.45;
+  const bodyWidth = size * 0.75;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.85,
+          height: roofHeight,
+          borderTopLeftRadius: 4,
+          borderTopRightRadius: 4,
+          borderWidth: 1.8,
+          borderColor: color,
+          borderBottomWidth: 0,
+          backgroundColor: 'transparent',
+          flexDirection: 'row',
+          justifyContent: 'space-evenly',
+        }}
+      >
+        <View style={{ width: 1.5, height: '100%', backgroundColor: color }} />
+        <View style={{ width: 1.5, height: '100%', backgroundColor: color }} />
+      </View>
+      <View style={{ width: size * 0.9, height: 2, backgroundColor: color, borderRadius: 1 }} />
+      <View
+        style={{
+          width: bodyWidth,
+          height: bodyHeight,
+          borderWidth: 1.8,
+          borderColor: color,
+          borderTopWidth: 0,
+          borderBottomLeftRadius: 3,
+          borderBottomRightRadius: 3,
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+        }}
+      >
+        <View
+          style={{
+            width: size * 0.25,
+            height: size * 0.28,
+            borderWidth: 1.5,
+            borderColor: color,
+            borderBottomWidth: 0,
+            borderTopLeftRadius: 2,
+            borderTopRightRadius: 2,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
 
+export function BikeIcon({ color = '#666', size = 20 }: { color?: string; size?: number }) {
+  const wheelSize = size * 0.32;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: wheelSize,
+          height: wheelSize,
+          borderRadius: wheelSize / 2,
+          borderWidth: 1.8,
+          borderColor: color,
+          position: 'absolute',
+          bottom: size * 0.1,
+          left: size * 0.08,
+        }}
+      />
+      <View
+        style={{
+          width: wheelSize,
+          height: wheelSize,
+          borderRadius: wheelSize / 2,
+          borderWidth: 1.8,
+          borderColor: color,
+          position: 'absolute',
+          bottom: size * 0.1,
+          right: size * 0.08,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.42,
+          height: 1.8,
+          backgroundColor: color,
+          position: 'absolute',
+          top: size * 0.35,
+          left: size * 0.28,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.18,
+          height: 2,
+          backgroundColor: color,
+          position: 'absolute',
+          top: size * 0.22,
+          left: size * 0.2,
+          transform: [{ rotate: '-25deg' }],
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.16,
+          height: 3,
+          backgroundColor: color,
+          borderRadius: 1.5,
+          position: 'absolute',
+          top: size * 0.3,
+          right: size * 0.24,
+        }}
+      />
+    </View>
+  );
+}
+
+export function CheckIcon({ color = '#10B981', size = 18 }: { color?: string; size?: number }) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.32,
+          height: size * 0.6,
+          borderColor: color,
+          borderBottomWidth: 2,
+          borderRightWidth: 2,
+          transform: [{ rotate: '45deg' }, { translateY: -size * 0.08 }],
+        }}
+      />
+    </View>
+  );
+}

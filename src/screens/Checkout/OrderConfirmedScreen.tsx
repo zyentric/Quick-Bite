@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types';
 import { useThemeColors, ThemeColors } from '../../theme/colors';
+import RatingBottomSheet from '../../components/RatingBottomSheet';
 
 type OrderConfirmedNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrderConfirmed'>;
 type OrderConfirmedRouteProp = RouteProp<RootStackParamList, 'OrderConfirmed'>;
@@ -16,6 +17,7 @@ export default function OrderConfirmedScreen() {
   const styles = getStyles(colors);
 
   const { orderId, destLat, destLng, addressLabel } = route.params || {};
+  const [ratingSheetVisible, setRatingSheetVisible] = useState<boolean>(false);
 
   const goHome = () => {
     navigation.dispatch(
@@ -51,7 +53,16 @@ export default function OrderConfirmedScreen() {
         </Text>
 
         <TouchableOpacity onPress={trackOrder} style={styles.trackButton} activeOpacity={0.8}>
-          <Text style={styles.trackButtonText}>Track My Order</Text>
+          <Text style={styles.trackButtonText}>Track My Order 🛵</Text>
+        </TouchableOpacity>
+
+        {/* Optional quick rate experience pill */}
+        <TouchableOpacity
+          onPress={() => setRatingSheetVisible(true)}
+          style={styles.rateExperienceBtn}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.rateExperienceText}>⭐ Rate Ordering Experience</Text>
         </TouchableOpacity>
       </View>
 
@@ -70,6 +81,14 @@ export default function OrderConfirmedScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <RatingBottomSheet
+        visible={ratingSheetVisible}
+        orderId={orderId || ''}
+        orderNumber={orderId ? orderId.slice(-6).toUpperCase() : undefined}
+        orderName="Placed Order"
+        onClose={() => setRatingSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -104,8 +123,22 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 25, shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3,
     shadowRadius: 8, elevation: 5,
+    marginBottom: 16,
   },
   trackButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  rateExperienceBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  rateExperienceText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
   bottomSection: { paddingHorizontal: 24, paddingBottom: 30, alignItems: 'center' },
   supportText: {
     fontSize: 13, color: colors.textMuted, textAlign: 'center',

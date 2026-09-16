@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import { useThemeColors, ThemeColors } from '../../theme/colors';
 import { useUser } from '../../context/UserContext';
 import { authFetch } from '../../utils/authFetch';
 import { API_URL } from '../../config/api';
+import { wsService } from '../../services/WebSocketService';
+import RatingBottomSheet from '../../components/RatingBottomSheet';
 import {
   TrackingHeroBanner,
   TrackingMap,
@@ -118,6 +120,8 @@ export default function DeliveryTimeScreen() {
   const [orderStatus, setOrderStatus] = useState<string>('OutForDelivery');
   const [orderItems, setOrderItems] = useState<RawOrderItem[]>([]);
   const [fetchedOrder, setFetchedOrder] = useState<CustomerOrderSummary | null>(null);
+  const [ratingSheetVisible, setRatingSheetVisible] = useState<boolean>(false);
+  const hasAutoPromptedRating = useRef<boolean>(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -129,6 +133,11 @@ export default function DeliveryTimeScreen() {
           setFetchedOrder(data);
           setOrderStatus(data.status || 'OutForDelivery');
           setOrderItems(data.items || []);
+
+          if (data.status === 'Delivered' && !hasAutoPromptedRating.current) {
+            hasAutoPromptedRating.current = true;
+            setTimeout(() => setRatingSheetVisible(true), 900);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch order for tracking:', e);
@@ -136,8 +145,22 @@ export default function DeliveryTimeScreen() {
     };
     fetchOrder();
 
+    // Live WebSocket status subscription
+    const unsubWs = wsService.subscribe((evt) => {
+      if (evt.orderId === orderId && evt.type === 'ORDER_STATUS_CHANGED') {
+        setOrderStatus(evt.status);
+        if (evt.status === 'Delivered' && !hasAutoPromptedRating.current) {
+          hasAutoPromptedRating.current = true;
+          setTimeout(() => setRatingSheetVisible(true), 900);
+        }
+      }
+    });
+
     const poll = setInterval(fetchOrder, 15000);
-    return () => clearInterval(poll);
+    return () => {
+      clearInterval(poll);
+      unsubWs();
+    };
   }, [orderId]);
 
   const currentInfo = STATUS_INFO[orderStatus] || STATUS_INFO.OutForDelivery;
@@ -234,6 +257,16 @@ export default function DeliveryTimeScreen() {
         {/* Bottom Floating Navigation Buttons */}
         <View style={styles.bottomSection}>
           <View style={styles.bottomActionsRow}>
+            {isDelivered && (
+              <TouchableOpacity
+                style={styles.rateBtn}
+                onPress={() => setRatingSheetVisible(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.rateBtnText}>⭐ Rate Order</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={styles.homeBtn}
               onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] })}
@@ -252,6 +285,15 @@ export default function DeliveryTimeScreen() {
           </View>
         </View>
       </View>
+
+      {/* Delivered Rating Bottom Sheet Modal */}
+      <RatingBottomSheet
+        visible={ratingSheetVisible}
+        orderId={orderId || fetchedOrder?.id || fetchedOrder?._id || ''}
+        orderNumber={orderNum.slice(-6).toUpperCase()}
+        orderName={orderItems[0]?.name || 'Your Order'}
+        onClose={() => setRatingSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -354,6 +396,26 @@ const getStyles = (colors: ThemeColors) =>
       color: colors.text,
       fontSize: 14,
       fontWeight: '700',
+    },
+    rateBtn: {
+      flex: 1.2,
+      backgroundColor: '#FEF3C7',
+      paddingVertical: 13,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: '#F59E0B',
+      shadowColor: '#F59E0B',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    rateBtnText: {
+      color: '#B45309',
+      fontSize: 14,
+      fontWeight: '900',
     },
     ordersBtn: {
       flex: 1,

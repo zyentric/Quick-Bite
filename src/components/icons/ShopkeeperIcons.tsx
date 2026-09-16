@@ -253,3 +253,126 @@ export function NonVegIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+/** Simple Checkmark Vector Icon */
+export function CheckmarkIcon({ size = 12, color = '#10B981' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.7,
+          height: size * 0.4,
+          borderColor: color,
+          borderBottomWidth: Math.max(1.8, size * 0.15),
+          borderLeftWidth: Math.max(1.8, size * 0.15),
+          transform: [{ rotate: '-45deg' }, { translateY: -size * 0.1 }],
+        }}
+      />
+    </View>
+  );
+}
+
+/** Simple Plus Vector Icon */
+export function PlusIcon({ size = 12, color = '#6B7280' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.8,
+          height: Math.max(1.5, size * 0.15),
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          width: Math.max(1.5, size * 0.15),
+          height: size * 0.8,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+    </View>
+  );
+}
+
+/** Gallery / Image Upload Vector Icon */
+export function GalleryUploadIcon({ size = 20, color = '#FFFFFF' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.85,
+          height: size * 0.7,
+          borderRadius: 4,
+          borderWidth: Math.max(1.8, size * 0.09),
+          borderColor: color,
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            top: size * 0.1,
+            right: size * 0.12,
+            width: size * 0.18,
+            height: size * 0.18,
+            borderRadius: (size * 0.18) / 2,
+            backgroundColor: color,
+          }}
+        />
+        <View
+          style={{
+            width: size * 0.5,
+            height: size * 0.35,
+            backgroundColor: color,
+            transform: [{ rotate: '45deg' }, { translateY: size * 0.08 }],
+            borderRadius: 2,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** Camera Photo Vector Icon */
+export function CameraPhotoIcon({ size = 20, color = '#FFFFFF' }: IconProps) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.3,
+          height: size * 0.15,
+          backgroundColor: color,
+          borderTopLeftRadius: 2,
+          borderTopRightRadius: 2,
+          marginBottom: -1,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.85,
+          height: size * 0.58,
+          borderRadius: 4,
+          borderWidth: Math.max(1.8, size * 0.09),
+          borderColor: color,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <View
+          style={{
+            width: size * 0.28,
+            height: size * 0.28,
+            borderRadius: (size * 0.28) / 2,
+            borderWidth: Math.max(1.5, size * 0.08),
+            borderColor: color,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+

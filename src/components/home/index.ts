@@ -12,3 +12,4 @@ export { default as HomeHealthyCorner } from './HomeHealthyCorner';
 export { default as HomeRecommendations } from './HomeRecommendations';
 export { default as HomeRecentlyViewed } from './HomeRecentlyViewed';
 export { default as HomeTrustBadges } from './HomeTrustBadges';
+export { default as CinemaClosedModal } from './CinemaClosedModal';

@@ -32,6 +32,8 @@ class WebSocketService {
   private ws: WebSocket | null = null;
   private userId: string | null = null;
   private role: string | null = null;
+  private latitude: number | null = null;
+  private longitude: number | null = null;
   private listeners: Set<EventCallback> = new Set();
   private chatListeners: Set<ChatCallback> = new Set();
   private toastHandler: ToastCallback | null = null;
@@ -43,9 +45,13 @@ class WebSocketService {
     this.toastHandler = handler;
   }
 
-  public connect(userId: string, role: string) {
+  public connect(userId: string, role: string, location?: { latitude?: number; longitude?: number }) {
     this.userId = userId;
     this.role = role;
+    if (location?.latitude !== undefined && location?.longitude !== undefined) {
+      this.latitude = location.latitude;
+      this.longitude = location.longitude;
+    }
     this.isExplicitlyClosed = false;
 
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
@@ -55,6 +61,21 @@ class WebSocketService {
     }
 
     this.initSocket();
+  }
+
+  public updateLocation(lat: number, lng: number) {
+    this.latitude = lat;
+    this.longitude = lng;
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'LOCATION_UPDATE',
+          userId: this.userId,
+          latitude: lat,
+          longitude: lng,
+        })
+      );
+    }
   }
 
   private getSocketUrl(): string {
@@ -88,12 +109,7 @@ class WebSocketService {
           const data = JSON.parse(event.data);
           console.log('[WebSocketService] Message received:', data);
 
-          if (data.type === 'REGISTERED') {
-            console.log('[WebSocketService] Registered as:', data.role);
-            return;
-          }
-
-          if (data.type === 'PONG') {
+          if (data.type === 'CONNECTED' || data.type === 'REGISTERED' || data.type === 'PONG') {
             return;
           }
 
@@ -125,6 +141,12 @@ class WebSocketService {
                 message: chatMsg.message,
               });
             }
+            return;
+          }
+
+          // Only process recognized order event types
+          const validOrderTypes = ['ORDER_PLACED', 'ORDER_STATUS_CHANGED', 'DELIVERY_CLAIMED', 'ORDER_CANCELLED'];
+          if (!validOrderTypes.includes(data.type)) {
             return;
           }
 
@@ -194,6 +216,8 @@ class WebSocketService {
           type: 'REGISTER',
           userId: this.userId,
           role: this.role || 'customer',
+          latitude: this.latitude,
+          longitude: this.longitude,
         })
       );
     }

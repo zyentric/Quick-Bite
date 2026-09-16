@@ -4,6 +4,7 @@ import { registerLogout, authFetch } from '../utils/authFetch';
 import { API_URL } from '../config/api';
 
 import { DeliveryAddress } from '../types';
+import { wsService } from '../services/WebSocketService';
 
 export type UserRole = 'customer' | 'shopkeeper' | 'delivery_man' | 'admin';
 
@@ -23,10 +24,19 @@ export interface UserProfile {
   documents?: {
     drivingLicense?: string;
     vehicleRC?: string;
+    vehicleRc?: string;
     identityProof?: string;
+    nationalId?: string;
+    drivingLicenseImg?: string;
+    drivingLicenseNumber?: string;
+    vehicleRcImg?: string;
+    vehicleRcNumber?: string;
+    nationalIdImg?: string;
+    nationalIdNumber?: string;
   };
   bankDetails?: {
     accountNumber?: string;
+    ifsc?: string;
     ifscCode?: string;
     upiId?: string;
   };
@@ -62,6 +72,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
+    wsService.disconnect();
     setIsAuthenticatedState(false);
     setUserIdState(null);
     setRoleState('customer');
@@ -157,10 +168,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAuthenticated && userId) {
       refreshUserProfile();
+      wsService.connect(userId, role);
     } else {
       setUserProfile(null);
     }
-  }, [isAuthenticated, userId, refreshUserProfile]);
+  }, [isAuthenticated, userId, role, refreshUserProfile]);
 
   // ── Setters ───────────────────────────────────────────────────────────────
   const setRole = async (newRole: UserRole) => {
